@@ -9,6 +9,13 @@ import os
 # Windows API 定义
 SendInput = ctypes.windll.user32.SendInput
 
+DEBOUNCE_SEC = 0.15
+
+# 新增：热键监听支持
+_hotkey_thread = None
+_hotkey_listener = None
+_hotkey_stop = threading.Event()
+
 # 输入事件结构体
 PUL = ctypes.POINTER(ctypes.c_ulong)
 
@@ -48,6 +55,60 @@ class Input_I(ctypes.Union):
 
 class Input(ctypes.Structure):
     _fields_ = [("type", ctypes.c_ulong), ("ii", Input_I)]
+
+
+def _run_hotkey_listener(trigger_key: str, on_trigger):
+    from pynput import keyboard
+
+    def _on_press(key):
+        nonlocal trigger_key
+        now = time.time()
+        with lock:
+            global last_press_time
+            if now - last_press_time < DEBOUNCE_SEC:
+                return
+            last_press_time = now
+
+        try:
+            if hasattr(key, "char") and key.char == trigger_key:
+                msg = on_trigger() if callable(on_trigger) else ""
+                if msg:
+                    send_text_to_game(msg)
+                return
+        except Exception:
+            pass
+        if key == keyboard.Key.esc:
+            _hotkey_stop.set()
+            return False
+
+    with keyboard.Listener(on_press=_on_press) as listener:
+        global _hotkey_listener
+        _hotkey_listener = listener
+        listener.join()
+
+
+def start_hotkey_listener(trigger_key: str, on_trigger):
+    """启动热键监听，按下 trigger_key 时调用 on_trigger() 获取文本并发送。"""
+    global _hotkey_thread, _hotkey_stop
+    stop_hotkey_listener()
+    _hotkey_stop = threading.Event()
+    _hotkey_thread = threading.Thread(
+        target=_run_hotkey_listener, args=(trigger_key, on_trigger), daemon=True
+    )
+    _hotkey_thread.start()
+
+
+def stop_hotkey_listener():
+    """停止已有的热键监听。"""
+    global _hotkey_listener, _hotkey_thread
+    if _hotkey_listener:
+        try:
+            _hotkey_listener.stop()
+        except Exception:
+            pass
+    _hotkey_stop.set()
+    _hotkey_listener = None
+    _hotkey_thread = None
 
 
 def press_enter():

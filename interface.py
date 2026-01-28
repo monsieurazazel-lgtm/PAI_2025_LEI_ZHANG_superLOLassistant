@@ -6,6 +6,7 @@ import os, sys, re, json, time
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any
 from ingame_tab import InGameTab
+import trashbase
 
 import pandas as pd
 import requests
@@ -1279,6 +1280,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("SuperLOL Assistant")
         self.setMinimumSize(1100, 720)
         self.is_dark_mode = False  # 添加模式标志
+        self.ingame_tab = InGameTab()
 
         banner = QWidget()
         banner.setObjectName("banner")
@@ -1301,18 +1303,26 @@ class MainWindow(QMainWindow):
         titleWrap.addWidget(lab2)
         titleWrap.addStretch(1)
 
-        # 添加昼夜模式切换按钮
+        # 添加昼夜模式切换按钮旁的热键配置按钮
         self.btnTheme = QPushButton("🌙 dark~")
         self.btnTheme.setFixedWidth(100)
         self.btnTheme.clicked.connect(self.toggle_theme)
+
+        self.btnHotkey = QPushButton("设定发送键")
+        self.btnHotkey.setFixedWidth(100)
+        self.btnHotkey.clicked.connect(self.configure_hotkey)
+
         titleWrap.addWidget(self.btnTheme, 0, Qt.AlignRight | Qt.AlignVCenter)
+        titleWrap.addWidget(self.btnHotkey, 0, Qt.AlignRight | Qt.AlignVCenter)
 
         bl.addLayout(titleWrap, 1)
 
         self.tabs = QTabWidget()
         self.tabs.addTab(MetaTab(), "META (global)")
         self.tabs.addTab(ProfileTab(), "MON PROFIL")
-        self.tabs.addTab(InGameTab(), "IN GAME")
+        self.tabs.addTab(self.ingame_tab, "IN GAME")
+        # 默认热键为空
+        self.hotkey_char: Optional[str] = None
 
         root = QWidget()
         lay = QVBoxLayout(root)
@@ -1338,6 +1348,30 @@ class MainWindow(QMainWindow):
             if p.exists():
                 return str(p)
         return None
+
+    def configure_hotkey(self):
+        """让玩家选择触发键，用于发送 InGameTab 的最新对局摘要。"""
+        from PySide6.QtWidgets import QInputDialog
+
+        key, ok = QInputDialog.getText(
+            self, "设定热键", "输入一个键（如 1 或 - ）用来发送当前局内数据："
+        )
+        if not ok or not key:
+            return
+        key = key.strip()
+        if len(key) != 1:
+            QMessageBox.warning(self, "热键", "只能设置单个字符键。")
+            return
+        self.hotkey_char = key
+
+        def on_trigger():
+            txt = self.ingame_tab.get_live_summary_text()
+            return txt or ""
+
+        trashbase.start_hotkey_listener(self.hotkey_char, on_trigger)
+        QMessageBox.information(
+            self, "热键已设定", f"按下 '{self.hotkey_char}' 将发送当前局内扫描摘要。"
+        )
 
 
 # =============================================================================
