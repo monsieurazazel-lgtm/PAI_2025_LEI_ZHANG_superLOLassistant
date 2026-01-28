@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Collecte N matchs LoL en CSV, SANS restriction de rang.
-- Seed via ladder high tiers (MASTER -> GRANDMASTER -> CHALLENGER), shard en minuscules (euw1/na1/…)
-- Pas d'usage de summoner.by_name (compat anciennes versions)
-- Option: fournir des seeds manuellement (--seed-ids ou --seed-puuids)
+Collecte N matchs LoL en CSV, en seedant avec des Riot IDs (gameName#tagLine).
+- Entrée: --seed-riotids "name1#TAG,name2#TAG,..." ou --seed-riotids-file fichier.txt (un Riot ID par ligne)
+- Pas de restriction de rang (seul le filtre de queue est appliqué si --queue est défini)
+- Si aucun Riot ID n'est fourni, fallback automatique: ladder high tiers (MASTER -> GM -> CHALL) pour amorcer
 
 Sorties :
   - participants.csv : matchId, teamId, teamWin, winnerTeamId, role, championName,
@@ -13,7 +13,7 @@ Sorties :
 """
 
 from __future__ import annotations
-import argparse, os, time, random, collections
+import argparse, os, time, random, collections, re
 from pathlib import Path
 from typing import Any, Dict, List, Set, Deque, Tuple
 import pandas as pd
@@ -94,12 +94,45 @@ def save_matches_csv(path: Path, match_rows: List[Tuple[str,int|None]], header: 
     path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(path, mode=("w" if header else "a"), index=False, header=header)
 
-# --------- Seed (sans by_name) ----------
+# --------- Seed helpers ----------
+def normalize_riot_id(s: str) -> tuple[str,str] | None:
+    """
+    Prend 'gameName#tagLine' (espaces tolérés, ex 'ztheo17 #EUW') et renvoie (gameName, tagLine).
+    """
+    if not s: return None
+    s = s.strip()
+    s = re.sub(r"\s+", "", s)  # enlève tous les espaces
+    if "#" not in s: return None
+    game, tag = s.split("#", 1)
+    if not game or not tag: return None
+    # tagLine insensible à la casse côté compte, on homogénéise en MAJ
+    return game, tag.upper()
+
+def riotids_to_puuids(rw: RiotWatcher, region_routing: str, riotids: list[str]) -> list[str]:
+    """
+    Convertit des Riot IDs (gameName#tagLine) en PUUID via account-v1.
+    region_routing = europe / americas / asia / sea (selon où se trouvent les comptes).
+    Pour EUW, utilise 'europe'.
+    """
+    out = []
+    for rid in riotids:
+        tup = normalize_riot_id(rid)
+        if not tup: continue
+        game, tag = tup
+        try:
+            acc = safe_call(rw.account.by_riot_id, region_routing, game, tag)
+            p = acc.get("puuid")
+            if p: out.append(p)
+        except ApiError:
+            continue
+    # dédup
+    return list({p for p in out if p})
+
 def league_entries_pages(lol, platform_lc: str, queue_str: str, tier_en: str, div: str, max_pages: int = 10) -> List[dict]:
     """
     Compat signature: riotwatcher a varié dans l'ordre des params.
-    On essaie d'abord (platform, queue, tier, division, page), puis (platform, tier, division, queue, page).
-    IMPORTANT: on utilise le shard en minuscules (euw1), pas en majuscules.
+    On essaie (platform, queue, tier, division, page) puis (platform, tier, division, queue, page).
+    IMPORTANT: utiliser le shard en minuscules (euw1).
     """
     all_entries=[]
     for pg in range(1, max_pages+1):
@@ -114,15 +147,13 @@ def league_entries_pages(lol, platform_lc: str, queue_str: str, tier_en: str, di
             except ApiError:
                 entries=[]
         if not entries:
-            # page vide -> on continue (les pages sup peuvent être vides, selon l’implémentation)
             continue
         all_entries.extend(entries)
     return all_entries
 
 def seed_from_ladder_hightiers(lol: LolWatcher, platform_lc: str, queue_str: str) -> List[str]:
     """
-    Récupère des summonerId via high tiers (MASTER -> GM -> CHALL).
-    Utilise EXCLUSIVEMENT le shard en minuscules (euw1).
+    Récupère des summonerId via high tiers (MASTER -> GM -> CHALL), puis DIAMOND si besoin.
     """
     ids: List[str] = []
 
@@ -149,21 +180,20 @@ def seed_from_ladder_hightiers(lol: LolWatcher, platform_lc: str, queue_str: str
         except ApiError:
             pass
 
-    # Elargissement DIAMOND si toujours rien (certaines configs renvoient 0)
+    # DIAMOND fallback si besoin
     if not ids:
         for div in ["I","II","III","IV"]:
             entries = league_entries_pages(lol, platform_lc, queue_str, "DIAMOND", div, max_pages=10)
             ids += [e.get("summonerId") for e in entries if e.get("summonerId")]
             if ids: break
 
-    # dédup
     return list({x for x in ids if x})
 
 def summoner_ids_to_puuids(lol: LolWatcher, platform_lc: str, summ_ids: List[str]) -> List[str]:
     puuids=[]
     for sid in summ_ids:
         try:
-            s = safe_call(lol.summoner.by_id, platform_lc, sid)   # <-- by_id existe chez toi
+            s = safe_call(lol.summoner.by_id, platform_lc, sid)
             if s.get("puuid"): puuids.append(s["puuid"])
         except ApiError:
             pass
@@ -172,24 +202,24 @@ def summoner_ids_to_puuids(lol: LolWatcher, platform_lc: str, summ_ids: List[str
 # --------- Collecte ----------
 def collect_dataset(
     api_key: str,
-    region: str,            # europe/americas/asia/sea (match-v5)
+    region: str,            # europe/americas/asia/sea (match-v5 & account-v1)
     platform: str,          # euw1/na1/kr/... (league/summoner)
     target_matches: int,
     queue_id: int | None,
     outdir: Path,
     matchlist_count: int = 100,
     max_seed_players: int = 300,
-    seed_ids: List[str] | None = None,     # summonerId seeds (optionnel)
-    seed_puuids: List[str] | None = None,  # puuid seeds (optionnel)
+    seed_riotids: List[str] | None = None,  # <- Riot IDs d'entrée
 ):
     rw = RiotWatcher(api_key)
     lol = LolWatcher(api_key)
 
-    # Compat éventuelle (certaines vieilles versions)
+    # Compat éventuelle (anciennes versions)
     if not hasattr(lol.league, "masters_by_queue") and hasattr(lol.league, "master_by_queue"):
         lol.league.masters_by_queue = lol.league.master_by_queue
 
-    platform_lc = platform.lower().strip()   # CRUCIAL: rester en minuscules (euw1)
+    platform_lc = platform.lower().strip()   # IMPORTANT: minuscules pour league/summoner
+    region_lc   = region.lower().strip()     # europe/americas/asia/sea
     QUEUE_STR = "RANKED_SOLO_5x5" if (queue_id == 420 or queue_id is None) else "RANKED_FLEX_SR"
 
     outdir.mkdir(parents=True, exist_ok=True)
@@ -198,31 +228,26 @@ def collect_dataset(
     save_append_csv(part_csv, [], header=True)
     save_matches_csv(match_csv, [], header=True)
 
-    # 1) Seeds
+    # 1) Seeds via Riot IDs -> PUUIDs (prioritaire)
     seeds_puuids: List[str] = []
+    if seed_riotids:
+        seeds_puuids = riotids_to_puuids(rw, region_lc, seed_riotids)
+        if not seeds_puuids:
+            print("[WARN] Aucun PUUID obtenu depuis les Riot IDs fournis. Fallback ladder...")
 
-    # a) PUUIDs fournis ?
-    if seed_puuids:
-        seeds_puuids = list({p for p in seed_puuids if p})
-
-    # b) summonerIds fournis ?
-    elif seed_ids:
-        # on convertit ces IDs en PUUIDs
-        seeds_puuids = summoner_ids_to_puuids(lol, platform_lc, list({x for x in seed_ids if x}))
-
-    # c) sinon, ladder high tiers (MASTER -> GM -> CHALL -> DIAMOND pages)
-    else:
+    # 2) Fallback ladder si besoin
+    if not seeds_puuids:
         summ_ids = seed_from_ladder_hightiers(lol, platform_lc, QUEUE_STR)
         if not summ_ids:
-            raise SystemExit("Impossible de récupérer des seeds via le ladder (essaie --seed-ids ou --seed-puuids).")
+            raise SystemExit("Impossible d'obtenir des seeds (Riot IDs invalides et ladder vide).")
         if max_seed_players and len(summ_ids) > max_seed_players:
             random.shuffle(summ_ids); summ_ids = summ_ids[:max_seed_players]
         seeds_puuids = summoner_ids_to_puuids(lol, platform_lc, summ_ids)
 
     if not seeds_puuids:
-        raise SystemExit("Aucun PUUID seed disponible (essaie --seed-ids ou --seed-puuids).")
+        raise SystemExit("Aucun PUUID seed disponible.")
 
-    # 2) Parcours (snowball)
+    # 3) Parcours (snowball)
     puuid_queue: Deque[str] = collections.deque(seeds_puuids)
     seen_puuids: Set[str] = set(seeds_puuids)
     seen_matches: Set[str] = set()
@@ -242,7 +267,7 @@ def collect_dataset(
             kw["queue"]=queue_id
             kw["type"]="ranked"
         try:
-            mlist = safe_call(lol.match.matchlist_by_puuid, region, puuid, count=matchlist_count, **kw)
+            mlist = safe_call(lol.match.matchlist_by_puuid, region_lc, puuid, count=matchlist_count, **kw)
         except ApiError:
             continue
         if not mlist: continue
@@ -251,7 +276,7 @@ def collect_dataset(
             if processed >= target_matches: break
             if mid in seen_matches: continue
             try:
-                match = safe_call(lol.match.by_id, region, mid)
+                match = safe_call(lol.match.by_id, region_lc, mid)
             except ApiError:
                 continue
             info = match.get("info", {})
@@ -292,9 +317,9 @@ def collect_dataset(
 
 # --------- CLI ----------
 def main():
-    ap = argparse.ArgumentParser(description="Collecte N matchs (sans restriction de rang)")
+    ap = argparse.ArgumentParser(description="Collecte N matchs (seed via Riot IDs)")
     ap.add_argument("--api-key", type=str, help="Clé Riot (sinon utilise RIOT_API_KEY)")
-    ap.add_argument("--region", type=str, default="europe", help="Routing match-v5 (europe/americas/asia/sea)")
+    ap.add_argument("--region", type=str, default="europe", help="Routing match/account (europe/americas/asia/sea)")
     ap.add_argument("--platform", type=str, default="euw1", help="Shard league/summoner (euw1/na1/kr/...)")
     ap.add_argument("--target", type=int, default=1000, help="Nombre de matchs à collecter")
     ap.add_argument("--queue", type=int, default=420, help="420=SoloQ, 440=Flex, 0=toutes files")
@@ -302,11 +327,9 @@ def main():
     ap.add_argument("--outdir", type=str, default="data_db", help="Dossier de sortie")
     ap.add_argument("--max-seed-players", type=int, default=300, help="Limite de seeds initiaux")
 
-    # Seeds manuels (optionnels)
-    ap.add_argument("--seed-ids", type=str, help="summonerId seeds, séparés par des virgules")
-    ap.add_argument("--seed-ids-file", type=str, help="fichier texte avec un summonerId par ligne")
-    ap.add_argument("--seed-puuids", type=str, help="PUUID seeds, séparés par des virgules")
-    ap.add_argument("--seed-puuids-file", type=str, help="fichier texte avec un PUUID par ligne")
+    # Riot IDs
+    ap.add_argument("--seed-riotids", type=str, help="Riot IDs 'gameName#tagLine' séparés par des virgules")
+    ap.add_argument("--seed-riotids-file", type=str, help="Fichier texte UTF-8, un Riot ID par ligne (gameName#tagLine)")
 
     args = ap.parse_args()
 
@@ -318,19 +341,13 @@ def main():
     region   = args.region.lower().strip()
     platform = args.platform.lower().strip()
 
-    seed_ids: List[str] = []
-    if args.seed_ids:
-        seed_ids += [s.strip() for s in args.seed_ids.split(",") if s.strip()]
-    if args.seed_ids_file and Path(args.seed_ids_file).exists():
-        with open(args.seed_ids_file, "r", encoding="utf-8") as f:
-            seed_ids += [ln.strip() for ln in f if ln.strip()]
-
-    seed_puuids: List[str] = []
-    if args.seed_puuids:
-        seed_puuids += [s.strip() for s in args.seed_puuids.split(",") if s.strip()]
-    if args.seed_puuids_file and Path(args.seed_puuids_file).exists():
-        with open(args.seed_puuids_file, "r", encoding="utf-8") as f:
-            seed_puuids += [ln.strip() for ln in f if ln.strip()]
+    # Charger les Riot IDs
+    riotids: List[str] = []
+    if args.seed_riotids:
+        riotids += [s.strip() for s in args.seed_riotids.split(",") if s.strip()]
+    if args.seed_riotids_file and Path(args.seed_riotids_file).exists():
+        with open(args.seed_riotids_file, "r", encoding="utf-8") as f:
+            riotids += [ln.strip() for ln in f if ln.strip()]
 
     collect_dataset(
         api_key=api_key,
@@ -341,8 +358,7 @@ def main():
         outdir=Path(args.outdir),
         matchlist_count=max(1, min(100, args.matchlist_count)),
         max_seed_players=max(50, args.max_seed_players),
-        seed_ids=(seed_ids or None),
-        seed_puuids=(seed_puuids or None),
+        seed_riotids=(riotids or None),
     )
 
 if __name__ == "__main__":
