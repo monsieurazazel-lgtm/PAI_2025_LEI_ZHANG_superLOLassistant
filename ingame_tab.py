@@ -175,21 +175,6 @@ class InGameTab(QWidget):
         main.addLayout(split, 1)
         self.setLayout(main)
 
-    def scan_live(self):
-        try:
-            # ...existing code up to rows_ally/rows_enemy filled...
-            rows_ally.sort(key=lambda x: float(x[-1]), reverse=True)
-            rows_enemy.sort(key=lambda x: float(x[-1]), reverse=True)
-            fill(self.tblAllies, rows_ally)
-            fill(self.tblEnemies, rows_enemy)
-
-            # 缓存结果用于热键发送
-            self.last_rows_ally = rows_ally
-            self.last_rows_enemy = rows_enemy
-            self.last_summary = self._build_summary_text(rows_ally, rows_enemy)
-        except Exception as e:
-            QMessageBox.critical(self, "In Game", f"Erreur: {e}")
-
     def _build_summary_text(self, allies, enemies, top_n: int = 3) -> str:
         def fmt(side):
             parts = []
@@ -322,6 +307,10 @@ class InGameTab(QWidget):
 
     def scan_live(self):
         try:
+            rows_ally.sort(key=lambda x: float(x[-1]), reverse=True)
+            rows_enemy.sort(key=lambda x: float(x[-1]), reverse=True)
+            fill(self.tblAllies, rows_ally)
+            fill(self.tblEnemies, rows_enemy)
             rw, lol = self._api()
             region = self.comboRegion.currentText().strip().lower()
             platform = self.comboPlatform.currentText().strip().lower()
@@ -437,5 +426,9 @@ class InGameTab(QWidget):
             fill(self.tblAllies, rows_ally)
             fill(self.tblEnemies, rows_enemy)
 
+            # 缓存结果用于热键发送
+            self.last_rows_ally = rows_ally
+            self.last_rows_enemy = rows_enemy
+            self.last_summary = self._build_summary_text(rows_ally, rows_enemy)
         except Exception as e:
             QMessageBox.critical(self, "In Game", f"Erreur: {e}")
