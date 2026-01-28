@@ -187,11 +187,55 @@ class InGameTab(QWidget):
             return ""
         return f"Allies: {fmt(allies)} | Enemies: {fmt(enemies)}"
 
+    def _build_funny_trash_text(self, allies, enemies) -> str:
+        """基于评分生成简短的搞笑文案（避免辱骂与违规）。"""
+
+        def safe_note(x):
+            try:
+                return float(x[-1])
+            except Exception:
+                return 0.0
+
+        def side_stats(side):
+            if not side:
+                return None, None, 0.0
+            top = side[0]
+            low = side[-1]
+            total = sum(safe_note(r) for r in side)
+            return top, low, total
+
+        if not allies and not enemies:
+            return ""
+
+        a_top, a_low, a_sum = side_stats(allies)
+        e_top, e_low, e_sum = side_stats(enemies)
+
+        # 字段: [name, champ, champ_wr, wr, kda, games, note]
+        def nick(row):
+            return f"{row[0]}({row[1]})" if row else "未知"
+
+        msg_parts = []
+        if a_sum or e_sum:
+            msg_parts.append(f"己方总分{a_sum:.0f} vs 敌方{e_sum:.0f}")
+        if a_top:
+            msg_parts.append(f"MVP预定：{nick(a_top)}")
+        if a_low:
+            msg_parts.append(f"需要照顾：{nick(a_low)}")
+        if e_top:
+            msg_parts.append(f"盯防对面：{nick(e_top)}")
+
+        # 结尾加一句缓和气氛的口号，避免引战
+        msg_parts.append("开局稳住，我们能赢！")
+        txt = "，".join(msg_parts)
+
+        # 聊天框一般有字数限制，做个裁剪
+        return txt[:220]
+
     def get_live_summary_text(self) -> str:
-        # 外部调用获取当前可发送文本
-        if self.last_summary:
-            return self.last_summary
-        return self._build_summary_text(self.last_rows_ally, self.last_rows_enemy)
+        # 外部调用获取当前可发送文本（使用搞笑版）
+        if not self.last_rows_ally and not self.last_rows_enemy:
+            return self._build_summary_text(self.last_rows_ally, self.last_rows_enemy)
+        return self._build_funny_trash_text(self.last_rows_ally, self.last_rows_enemy)
 
     def _api(self):
         api_key = self.lineApiKey.text().strip() or os.getenv("RIOT_API_KEY")
@@ -430,5 +474,7 @@ class InGameTab(QWidget):
             self.last_rows_ally = rows_ally
             self.last_rows_enemy = rows_enemy
             self.last_summary = self._build_summary_text(rows_ally, rows_enemy)
+            # 用搞笑文案作为默认发送内容
+            self.last_summary = self._build_funny_trash_text(rows_ally, rows_enemy)
         except Exception as e:
             QMessageBox.critical(self, "In Game", f"Erreur: {e}")
