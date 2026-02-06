@@ -116,7 +116,7 @@ def flatten_participants(info: Dict) -> pd.DataFrame:
                     for sel in st.get("selections") or []:
                         sels.append(sel.get("perk"))
                 for j, perk in enumerate(sels[:6]):
-                    row[f"rune_{j+1}"] = perk
+                    row[f"rune_{j + 1}"] = perk
         except Exception:
             pass
         rows.append(row)

@@ -985,7 +985,7 @@ class ProfileTab(QWidget):
 
         outdir = Path("data_user")
         outdir.mkdir(parents=True, exist_ok=True)
-        outcsv = outdir / f"participants_{riot_id.replace('#','_')}.csv"
+        outcsv = outdir / f"participants_{riot_id.replace('#', '_')}.csv"
         dfu.to_csv(outcsv, index=False)
         self.lblInfo.setText(f"Chargé: {outcsv.resolve()}")
         self.dfu = dfu
