@@ -13,7 +13,12 @@ Sorties :
 """
 
 from __future__ import annotations
-import argparse, os, time, random, collections, re
+import argparse
+import os
+import time
+import random
+import collections
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Set, Deque, Tuple
 import pandas as pd

@@ -23,9 +23,13 @@ Exemples:
 """
 
 from __future__ import annotations
-import argparse, os, json, time, random
+import argparse
+import os
+import json
+import time
+import random
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import pandas as pd
 

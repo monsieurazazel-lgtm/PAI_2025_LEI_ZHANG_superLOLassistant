@@ -47,7 +47,9 @@ PLATFORM_GROUPS: Dict[str, list[str]] = {
     "sea": ["oc1", "ph2", "sg2", "th2", "tw2", "vn2"],
 }
 
-ALL_PLATFORMS: list[str] = sorted({p for group in PLATFORM_GROUPS.values() for p in group})
+ALL_PLATFORMS: list[str] = sorted(
+    {p for group in PLATFORM_GROUPS.values() for p in group}
+)
 ALL_ROUTINGS: list[str] = ["europe", "americas", "asia", "sea"]
 
 SLEEP_PER_CALL: float = 1.25
@@ -319,7 +321,9 @@ def load_champion_id_to_name(
 
     version: Optional[str] = None
     try:
-        r = requests.get("https://ddragon.leagueoflegends.com/api/versions.json", timeout=2.0)
+        r = requests.get(
+            "https://ddragon.leagueoflegends.com/api/versions.json", timeout=2.0
+        )
         if r.ok:
             version = cast(list[Any], r.json() or [None])[0]
     except Exception:
@@ -360,7 +364,12 @@ def load_champion_id_to_name(
 
     try:
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(json.dumps({str(k): v for k, v in out.items()}, ensure_ascii=False, indent=2), encoding="utf-8")
+        p.write_text(
+            json.dumps(
+                {str(k): v for k, v in out.items()}, ensure_ascii=False, indent=2
+            ),
+            encoding="utf-8",
+        )
     except Exception:
         pass
 
@@ -554,7 +563,9 @@ class InGameTab(QWidget):
             return ""
         return f"Allies: {fmt(allies)} | Enemies: {fmt(enemies)}"
 
-    def _build_funny_trash_text(self, allies: List[list[str]], enemies: List[list[str]]) -> str:
+    def _build_funny_trash_text(
+        self, allies: List[list[str]], enemies: List[list[str]]
+    ) -> str:
         """Build a playful summary string (kept from original behavior)."""
 
         def note_val(row: list[str]) -> float:
@@ -563,7 +574,9 @@ class InGameTab(QWidget):
             except Exception:
                 return 0.0
 
-        def side_stats(side: List[list[str]]) -> tuple[Optional[list[str]], Optional[list[str]], float]:
+        def side_stats(
+            side: List[list[str]],
+        ) -> tuple[Optional[list[str]], Optional[list[str]], float]:
             if not side:
                 return None, None, 0.0
             return side[0], side[-1], sum(note_val(r) for r in side)
@@ -701,7 +714,9 @@ class InGameTab(QWidget):
                 continue
         return None, None
 
-    def _active_game_spectator(self, lol: LolWatcher, platform: str, summ_id: str) -> Optional[dict[str, Any]]:
+    def _active_game_spectator(
+        self, lol: LolWatcher, platform: str, summ_id: str
+    ) -> Optional[dict[str, Any]]:
         """Call spectator-v4 endpoint via riotwatcher with compatibility fallback."""
         fn = getattr(
             lol.spectator,
@@ -763,7 +778,9 @@ class InGameTab(QWidget):
         if queue in (420, 440):
             params["queue"] = queue  # already implies ranked queues
 
-        match_ids = safe_call(lol.match.matchlist_by_puuid, routing, puuid, **params) or []
+        match_ids = (
+            safe_call(lol.match.matchlist_by_puuid, routing, puuid, **params) or []
+        )
         match_ids_list = cast(list[Any], match_ids)
 
         records: List[dict[str, Any]] = []
@@ -878,7 +895,9 @@ class InGameTab(QWidget):
             f"{note:.1f}",
         ]
 
-    def _commit_rows(self, rows_ally: List[list[str]], rows_enemy: List[list[str]]) -> None:
+    def _commit_rows(
+        self, rows_ally: List[list[str]], rows_enemy: List[list[str]]
+    ) -> None:
         """Sort rows by note and update UI + cached last results."""
         rows_ally.sort(key=lambda x: float(x[-1]), reverse=True)
         rows_enemy.sort(key=lambda x: float(x[-1]), reverse=True)
@@ -1053,7 +1072,9 @@ class InGameTab(QWidget):
                 continue
         return None
 
-    def _puuid_from_summoner_id(self, lol: LolWatcher, platform: str, summoner_id: str) -> Optional[str]:
+    def _puuid_from_summoner_id(
+        self, lol: LolWatcher, platform: str, summoner_id: str
+    ) -> Optional[str]:
         """Fallback resolution: summonerId -> PUUID via summoner.by_id."""
         try:
             s = safe_call(lol.summoner.by_id, platform, summoner_id)
@@ -1072,7 +1093,9 @@ class InGameTab(QWidget):
             self._set_scan_ui(running=True)
 
             rw, lol = self._api()
-            api_key = (self.lineApiKey.text().strip() or os.getenv("RIOT_API_KEY") or "").strip()
+            api_key = (
+                self.lineApiKey.text().strip() or os.getenv("RIOT_API_KEY") or ""
+            ).strip()
             if not api_key:
                 raise RuntimeError("API key manquante.")
 
@@ -1122,10 +1145,14 @@ class InGameTab(QWidget):
         """Scan from LiveClient data and update tables."""
         players = cast(list[Any], lc.get("allPlayers") or [])
         if not players:
-            QMessageBox.information(self, "In Game", "LiveClient OK mais allPlayers vide.\n" + lc_dbg)
+            QMessageBox.information(
+                self, "In Game", "LiveClient OK mais allPlayers vide.\n" + lc_dbg
+            )
             return
 
-        platform = self._guess_platform_from_me(rw, lol, routing_ui, platform_ui, my_riotid)
+        platform = self._guess_platform_from_me(
+            rw, lol, routing_ui, platform_ui, my_riotid
+        )
 
         rows_ally: List[list[str]] = []
         rows_enemy: List[list[str]] = []
@@ -1133,16 +1160,22 @@ class InGameTab(QWidget):
         for pobj in players:
             p = cast(dict[str, Any], pobj)
             name = str(p.get("summonerName") or "")
-            champ = self.champ_to_name(p.get("championName") or p.get("championId") or "")
+            champ = self.champ_to_name(
+                p.get("championName") or p.get("championId") or ""
+            )
             team = str(p.get("team") or "")  # ORDER / CHAOS
 
             puuid = self._puuid_from_liveclient_player(rw, lol, routing_ui, platform, p)
-            row = self._row_from_stats(lol, routing_ui, puuid, name, champ, recent, queue)
+            row = self._row_from_stats(
+                lol, routing_ui, puuid, name, champ, recent, queue
+            )
 
             (rows_ally if team == "ORDER" else rows_enemy).append(row)
 
         self._commit_rows(rows_ally, rows_enemy)
-        QMessageBox.information(self, "In Game", f"✅ Partie trouvée via LiveClient.\n{lc_dbg}")
+        QMessageBox.information(
+            self, "In Game", f"✅ Partie trouvée via LiveClient.\n{lc_dbg}"
+        )
 
     def _scan_from_spectator(
         self,
@@ -1157,7 +1190,9 @@ class InGameTab(QWidget):
     ) -> None:
         """Scan from Spectator API and update tables."""
         if not my_riotid:
-            QMessageBox.warning(self, "In Game", "Saisis un Riot ID (gameName#tagLine).")
+            QMessageBox.warning(
+                self, "In Game", "Saisis un Riot ID (gameName#tagLine)."
+            )
             return
 
         puuid = riotid_to_puuid_any_routing(rw, my_riotid, preferred=routing_ui)
@@ -1200,7 +1235,9 @@ class InGameTab(QWidget):
                     dbg = "SpectatorV4: OK (fallback)"
 
         if not game:
-            QMessageBox.information(self, "In Game", f"Pas de partie en cours (Spectator).\n{dbg}")
+            QMessageBox.information(
+                self, "In Game", f"Pas de partie en cours (Spectator).\n{dbg}"
+            )
             return
 
         rows_ally: List[list[str]] = []
@@ -1211,14 +1248,24 @@ class InGameTab(QWidget):
             p = cast(dict[str, Any], pobj)
             name = p.get("summonerName") or p.get("riotId") or ""
             team_id = p.get("teamId")
-            champ = self.champ_to_name(p.get("championName") or p.get("championId") or "")
+            champ = self.champ_to_name(
+                p.get("championName") or p.get("championId") or ""
+            )
 
             ppu = cast(Optional[str], p.get("puuid"))
             if not ppu and p.get("summonerId"):
-                ppu = self._puuid_from_summoner_id(lol, platform_found, str(p.get("summonerId")))
+                ppu = self._puuid_from_summoner_id(
+                    lol, platform_found, str(p.get("summonerId"))
+                )
 
-            row = self._row_from_stats(lol, routing_ui, ppu, str(name), str(champ), recent, queue)
+            row = self._row_from_stats(
+                lol, routing_ui, ppu, str(name), str(champ), recent, queue
+            )
             (rows_ally if team_id == 100 else rows_enemy).append(row)
 
         self._commit_rows(rows_ally, rows_enemy)
-        QMessageBox.information(self, "In Game", f"✅ Partie trouvée via Spectator ({platform_found}).\n{dbg}")
+        QMessageBox.information(
+            self,
+            "In Game",
+            f"✅ Partie trouvée via Spectator ({platform_found}).\n{dbg}",
+        )
