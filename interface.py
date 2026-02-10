@@ -188,7 +188,7 @@ def _mask_any(mask: Any) -> bool:
     # Si c'est déjà un booléen simple, on le renvoie
     if isinstance(mask, bool):
         return mask
-    
+
     # Pour les objets Pandas (Series/DataFrame)
     if isinstance(mask, (Series, DataFrame)):
         # .fillna(False) pour gérer les NaN, puis .any()
@@ -197,7 +197,7 @@ def _mask_any(mask: Any) -> bool:
         while isinstance(val, (Series, DataFrame, pd.Index)):
             val = val.any()
         return bool(val)
-        
+
     # Pour NumPy ou autres itérables (cas général sécurisé)
     try:
         return bool(np.any(mask)) if hasattr(mask, "__iter__") else bool(mask)
@@ -822,7 +822,8 @@ def compute_player_by_champ(dfu: DataFrame) -> DataFrame:
     agg = cast(DataFrame, agg.rename(columns={"championName": "champion"}))
 
     out = cast(
-        DataFrame, agg.loc[:, ["champion", "games", "wins", "wr%", "kda", "K", "D", "A"]]
+        DataFrame,
+        agg.loc[:, ["champion", "games", "wins", "wr%", "kda", "K", "D", "A"]],
     )
     return out
 
@@ -1121,7 +1122,8 @@ class MetaTab(QWidget):
             return
 
         sub = cast(
-            DataFrame, df.loc[(df["role"] == role) & (df["championName"] == champ)].copy()
+            DataFrame,
+            df.loc[(df["role"] == role) & (df["championName"] == champ)].copy(),
         )
         if bool(sub.empty):
             return
@@ -1145,7 +1147,7 @@ class MetaTab(QWidget):
 
             try:
                 group = idx.loc[(mid, role)]
-                if isinstance(group, Series):   
+                if isinstance(group, Series):
                     group = group.to_frame().T
                 group_df = cast(DataFrame, group)
             except KeyError:
@@ -1786,7 +1788,8 @@ class ProfileTab(QWidget):
 
         if sk == "Winrate":
             cdf = cast(
-                DataFrame, cdf.sort_values(by=["wr%", "games"], ascending=[False, False])
+                DataFrame,
+                cdf.sort_values(by=["wr%", "games"], ascending=[False, False]),
             )
         elif sk == "Games":
             cdf = cast(DataFrame, cdf.sort_values(by="games", ascending=False))

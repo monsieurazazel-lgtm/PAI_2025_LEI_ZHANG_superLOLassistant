@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "superlol-assistant"
+version = "1.0.0"
+description = "Application desktop d'assistance pour League of Legends (tier-lists, profil, scan in-game, hotkey)"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    { name = "Shutian LEI" },
+    { name = "Lixiang ZHANG" },
+]
+
+dependencies = [
+    "PySide6",
+    "riotwatcher",
+    "pandas",
+    "matplotlib",
+    "requests",
+    "numpy",
+    "pynput",
+    "pyperclip",
+]
+
