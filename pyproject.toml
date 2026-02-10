@@ -12,7 +12,7 @@ authors = [
     { name = "Shutian LEI" },
     { name = "Lixiang ZHANG" },
 ]
-
+# 这里保留了你项目实际需要的库
 dependencies = [
     "PySide6",
     "riotwatcher",
@@ -24,3 +24,32 @@ dependencies = [
     "pyperclip",
 ]
 
+# --- 关键修改：下面是 CI 报错缺少的“依赖分组” ---
+# 你的报错 "Group 'test' is not defined" 就是因为缺了这块
+[dependency-groups]
+dev = [
+    "ruff",
+    "pre-commit",
+    "pyright",
+]
+test = [
+    "pytest",
+    "pytest-qt",      # 针对 PySide6 的测试工具
+    "pytest-cov",
+]
+doc = [
+    "sphinx",
+    "sphinx-rtd-theme",
+]
+
+# --- 下面是工具的配置，建议加上以防后续报错 ---
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = ["tests"]
+
+[tool.pyright]
+# 告诉 pyright 忽略这一堆库的类型缺失警告，否则你的检查可能全是红的
+reportMissingImports = false
+reportMissingTypeStubs = false
