@@ -1,0 +1,293 @@
+"""
+Tests for lol_matchups_test.py — matchup pipeline (demo generation, flatten, compute, recommend).
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import tempfile
+from pathlib import Path
+
+import pandas as pd
+import pytest
+
+# ── import the module under test ──────────────────────────────────────────────
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from lol_matchups_test import (
+    DEMO_CHAMPS,
+    DEMO_ROLES,
+    ROLE_MAP,
+    build_argparser,
+    compute_lane_matchups,
+    demo_generate_matches,
+    flatten_matches,
+    recommend,
+    save_matchups_csv,
+    save_raw_from_df,
+)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# demo_generate_matches
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestDemoGenerateMatches:
+    """Tests for the synthetic match generator."""
+
+    def test_default_200_matches(self):
+        df = demo_generate_matches()
+        # 200 matches × 5 roles × 2 teams = 2000 rows
+        assert len(df) == 2000
+
+    def test_custom_match_count(self):
+        df = demo_generate_matches(n_matches=10)
+        assert len(df) == 10 * 5 * 2
+
+    def test_columns_present(self):
+        df = demo_generate_matches(n_matches=5)
+        for col in ("matchId", "teamId", "win", "role", "champ"):
+            assert col in df.columns
+
+    def test_teams_are_100_and_200(self):
+        df = demo_generate_matches(n_matches=5)
+        assert set(df["teamId"].unique()) == {100, 200}
+
+    def test_roles_are_correct(self):
+        df = demo_generate_matches(n_matches=5)
+        assert set(df["role"].unique()) == set(DEMO_ROLES)
+
+    def test_champions_come_from_pool(self):
+        df = demo_generate_matches(n_matches=50)
+        assert set(df["champ"].unique()).issubset(set(DEMO_CHAMPS))
+
+    def test_win_is_boolean(self):
+        df = demo_generate_matches(n_matches=5)
+        assert df["win"].dtype == bool
+
+    def test_each_match_has_10_rows(self):
+        df = demo_generate_matches(n_matches=20)
+        counts = df.groupby("matchId").size()
+        assert (counts == 10).all()
+
+    def test_opposite_wins(self):
+        """Within a match, team 100 wins should be the opposite of team 200 wins."""
+        df = demo_generate_matches(n_matches=20)
+        for _, grp in df.groupby("matchId"):
+            t100 = grp[grp["teamId"] == 100]["win"].iloc[0]
+            t200 = grp[grp["teamId"] == 200]["win"].iloc[0]
+            assert t100 != t200
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# save_raw_from_df / flatten_matches  (round-trip)
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestSaveAndFlatten:
+    """Tests for JSONL serialization and deserialization round-trip."""
+
+    @pytest.fixture()
+    def demo_df(self):
+        return demo_generate_matches(n_matches=30)
+
+    @pytest.fixture()
+    def tmp_data_dir(self, tmp_path, monkeypatch):
+        """Redirect DATA_DIR / RAW_PATH to a temp directory."""
+        import lol_matchups_test as mod
+
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        monkeypatch.setattr(mod, "DATA_DIR", data_dir)
+        monkeypatch.setattr(mod, "RAW_PATH", data_dir / "matches_raw.jsonl")
+        monkeypatch.setattr(mod, "MATCHUPS_CSV", data_dir / "matchups.csv")
+        return data_dir
+
+    def test_round_trip_match_count(self, demo_df, tmp_data_dir):
+        save_raw_from_df(demo_df)
+        raw_path = tmp_data_dir / "matches_raw.jsonl"
+        assert raw_path.exists()
+
+        flat = flatten_matches(raw_path)
+        assert flat["matchId"].nunique() == 30
+
+    def test_round_trip_columns(self, demo_df, tmp_data_dir):
+        save_raw_from_df(demo_df)
+        flat = flatten_matches(tmp_data_dir / "matches_raw.jsonl")
+        for col in ("matchId", "teamId", "win", "role", "champ"):
+            assert col in flat.columns
+
+    def test_round_trip_roles_preserved(self, demo_df, tmp_data_dir):
+        save_raw_from_df(demo_df)
+        flat = flatten_matches(tmp_data_dir / "matches_raw.jsonl")
+        assert set(flat["role"].unique()) == set(DEMO_ROLES)
+
+    def test_flatten_nonexistent_file(self, tmp_data_dir):
+        flat = flatten_matches(tmp_data_dir / "nonexistent.jsonl")
+        assert flat.empty
+
+    def test_flatten_empty_file(self, tmp_data_dir):
+        empty_path = tmp_data_dir / "empty.jsonl"
+        empty_path.write_text("")
+        flat = flatten_matches(empty_path)
+        # Empty file → returns DF with correct columns but no rows
+        assert len(flat) == 0
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# compute_lane_matchups
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestComputeLaneMatchups:
+    """Tests for the matchup aggregation logic."""
+
+    def test_empty_input(self):
+        df = pd.DataFrame(columns=["matchId", "teamId", "win", "role", "champ"])
+        result = compute_lane_matchups(df)
+        assert result.empty
+        for col in ("role", "champ_ally", "champ_enemy", "games", "wins", "winrate"):
+            assert col in result.columns
+
+    def test_single_match(self):
+        rows = []
+        for r in DEMO_ROLES:
+            rows.append(
+                {
+                    "matchId": "M1",
+                    "teamId": 100,
+                    "win": True,
+                    "role": r,
+                    "champ": "Ahri",
+                }
+            )
+            rows.append(
+                {
+                    "matchId": "M1",
+                    "teamId": 200,
+                    "win": False,
+                    "role": r,
+                    "champ": "Zed",
+                }
+            )
+        df = pd.DataFrame(rows)
+        result = compute_lane_matchups(df)
+        # Each role should have an Ahri vs Zed row
+        assert len(result) == 5
+        assert (result["winrate"] == 1.0).all()
+
+    def test_winrate_range(self):
+        df = demo_generate_matches(n_matches=100)
+        result = compute_lane_matchups(df)
+        assert (result["winrate"] >= 0.0).all()
+        assert (result["winrate"] <= 1.0).all()
+
+    def test_games_positive(self):
+        df = demo_generate_matches(n_matches=50)
+        result = compute_lane_matchups(df)
+        assert (result["games"] > 0).all()
+
+    def test_wins_leq_games(self):
+        df = demo_generate_matches(n_matches=50)
+        result = compute_lane_matchups(df)
+        assert (result["wins"] <= result["games"]).all()
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# save_matchups_csv / recommend
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestRecommend:
+    """Tests for matchup CSV save and recommendation."""
+
+    @pytest.fixture()
+    def matchups_on_disk(self, tmp_path, monkeypatch):
+        """Generate matchups and write them to a temp CSV."""
+        import lol_matchups_test as mod
+
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        monkeypatch.setattr(mod, "DATA_DIR", data_dir)
+        monkeypatch.setattr(mod, "RAW_PATH", data_dir / "matches_raw.jsonl")
+        monkeypatch.setattr(mod, "MATCHUPS_CSV", data_dir / "matchups.csv")
+
+        df = demo_generate_matches(n_matches=500)
+        save_raw_from_df(df)
+        flat = flatten_matches(data_dir / "matches_raw.jsonl")
+        matchups = compute_lane_matchups(flat)
+        save_matchups_csv(matchups)
+        return data_dir / "matchups.csv"
+
+    def test_csv_exists(self, matchups_on_disk):
+        assert matchups_on_disk.exists()
+
+    def test_recommend_returns_dataframe(self, matchups_on_disk):
+        rec = recommend(role="mid", enemy="Zed", topk=5, min_games=1)
+        assert isinstance(rec, pd.DataFrame)
+
+    def test_recommend_topk(self, matchups_on_disk):
+        rec = recommend(role="mid", enemy="Zed", topk=3, min_games=1)
+        assert len(rec) <= 3
+
+    def test_recommend_min_games_filter(self, matchups_on_disk):
+        rec = recommend(role="mid", enemy="Zed", topk=100, min_games=1)
+        if not rec.empty:
+            assert (rec["games"] >= 1).all()
+
+    def test_recommend_sorted_by_winrate(self, matchups_on_disk):
+        rec = recommend(role="mid", enemy="Zed", topk=10, min_games=1)
+        if len(rec) > 1:
+            wr_list = rec["winrate"].tolist()
+            assert wr_list == sorted(wr_list, reverse=True)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# ROLE_MAP
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestRoleMap:
+    """Tests for the role mapping constant."""
+
+    def test_all_riot_positions_mapped(self):
+        for key in ("TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"):
+            assert key in ROLE_MAP
+
+    def test_mapped_values(self):
+        assert set(ROLE_MAP.values()) == {"top", "jungle", "mid", "bot", "sup"}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# build_argparser
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestArgparser:
+    """Tests for the CLI argument parser."""
+
+    def test_demo_mode(self):
+        args = build_argparser().parse_args(["--demo"])
+        assert args.demo is True
+
+    def test_recommend_mode(self):
+        args = build_argparser().parse_args(
+            ["--recommend", "--role", "top", "--enemy", "Garen"]
+        )
+        assert args.recommend is True
+        assert args.role == "top"
+        assert args.enemy == "Garen"
+
+    def test_riot_mode(self):
+        args = build_argparser().parse_args(
+            ["--riot", "--api-key", "DUMMY", "--name", "player", "--tag", "EUW"]
+        )
+        assert args.riot is True
+
+    def test_mutual_exclusion(self):
+        with pytest.raises(SystemExit):
+            build_argparser().parse_args(["--demo", "--riot"])

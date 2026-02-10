@@ -309,6 +309,9 @@ def flatten_matches(jsonl_path: Path) -> pd.DataFrame:
                 )
 
     df = pd.DataFrame(rows)
+    if df.empty:
+        print("[BUILD] Matches valides (5 rôles x 2 équipes): 0")
+        return pd.DataFrame(columns=["matchId", "teamId", "win", "role", "champ"])
     valid = df.groupby("matchId").size().eq(10)  # 5 rôles x 2 équipes
     df = df[df["matchId"].isin(valid[valid].index)]
     print(f"[BUILD] Matches valides (5 rôles x 2 équipes): {df['matchId'].nunique()}")
