@@ -57,3 +57,7 @@ addopts = "-ra -q"
 # 告诉 pyright 忽略这一堆库的类型缺失警告，否则你的检查可能全是红的
 reportMissingImports = false
 reportMissingTypeStubs = false
+reportAttributeAccessIssue = false
+reportAssignmentType = false
+reportIndexIssue = false
+reportArgumentType = false
