@@ -1,1 +1,0 @@
-python lol_matchups_test.py --riot --api-key RGAPI-0651ec20-6365-435c-b5e7-8970b8b1fc08   --platform EUW1 --region europe --name ztheo17 --tag EUW --count 1 --build

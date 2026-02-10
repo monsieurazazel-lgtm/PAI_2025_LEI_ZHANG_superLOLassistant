@@ -1,0 +1,92 @@
+name: CI
+
+# Concurrency group that uses the workflow name and PR number if available
+# or commit SHA as a fallback. If a new build is triggered under that
+# concurrency group while a previous build is running it will be canceled.
+# Repeated pushes to a PR will cancel all previous builds, while multiple
+# merges to main will not cancel.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+env:
+  FORCE_COLOR: "1" # Make tools pretty
+
+permissions: {}
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_call:
+
+jobs:
+  run-pytest:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv ⚡️
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: 3.13
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+      - name: Set up Python 🐍 and build project 🏗️
+        run: |
+          uv python install
+          uv sync --group test --all-extras
+      - name: Run the tests and get coverage 🔬
+        run: |
+          uv run coverage run -m pytest
+          uv run coverage report
+
+  build-site:
+    name: "build docs"
+    runs-on: macos-latest
+    steps:
+      - name: "Checkout repository 🛎"
+        uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: 3.13
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+      - name: "Install pandoc 📝"
+        uses: r-lib/actions/setup-pandoc@v2
+        with:
+          pandoc-version: "latest"
+      - name: Set up Python 🐍 and build project 🏗️
+        run: |
+          uv python install
+          uv sync --group test --all-extras
+      - name: "Build docs and check for warnings 📖"
+        shell: bash
+        run: |
+          uv run sphinx-build docs docs/_build -W
+
+  run-pyright:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv ⚡️
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+      - name: Set up Python 🐍 and build project 🏗️
+        run: |
+          uv python install
+          uv sync --group test --all-extras
+      - run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
+      - name: Run pyright 📐
+        uses: jakebailey/pyright-action@v2
+
+  run-pre-commit:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v3
+    - name : Lint the code with Pre-commit 🔍
+      uses: pre-commit/action@v3.0.1
