@@ -10,11 +10,23 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-from pandas import DataFrame, Series
+from pandas import DataFrame
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from interface import (
+# trashbase uses ctypes.windll (Windows-only); mock it so interface.py
+# can be imported on macOS / Linux CI runners.
+import unittest.mock as _mock
+
+_windll_patch = _mock.MagicMock()
+sys.modules.setdefault("ctypes.windll", _windll_patch)
+
+import ctypes as _ctypes  # noqa: E402
+
+if not hasattr(_ctypes, "windll"):
+    _ctypes.windll = _windll_patch  # type: ignore[attr-defined]
+
+from interface import (  # noqa: E402
     _df_is_empty,
     _mask_any,
     _series_is_empty,

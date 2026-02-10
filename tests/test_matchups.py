@@ -4,9 +4,6 @@ Tests for lol_matchups_test.py — matchup pipeline (demo generation, flatten, c
 
 from __future__ import annotations
 
-import json
-import os
-import tempfile
 from pathlib import Path
 
 import pandas as pd
