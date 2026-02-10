@@ -44,6 +44,13 @@ doc = [
 
 # --- 下面是工具的配置，建议加上以防后续报错 ---
 
+[tool.setuptools]
+# 明确指定需要包含的包，排除数据目录
+packages = ["trashbase"]
+
+[tool.setuptools.py-modules]
+# setuptools 会自动发现根目录下的 .py 文件
+
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q"
