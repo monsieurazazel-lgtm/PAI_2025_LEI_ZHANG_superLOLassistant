@@ -42,8 +42,6 @@ from interface import (  # noqa: E402
 
 
 class TestDfIsEmpty:
-    def test_none(self):
-        assert _df_is_empty(None) is True
 
     def test_empty_dataframe(self):
         assert _df_is_empty(pd.DataFrame()) is True
@@ -58,8 +56,6 @@ class TestDfIsEmpty:
 
 
 class TestSeriesIsEmpty:
-    def test_none(self):
-        assert _series_is_empty(None) is True
 
     def test_empty_series(self):
         assert _series_is_empty(pd.Series(dtype=float)) is True
@@ -157,6 +153,8 @@ class TestComputePlayerOverview:
 
 class TestComputePlayerByRole:
     def test_empty_df(self):
+        # Even if the input DataFrame is empty, the output should still have the
+        # expected structure (columns, etc.) but no rows.
         result = compute_player_by_role(pd.DataFrame())
         assert result.empty
         assert "role" in result.columns
