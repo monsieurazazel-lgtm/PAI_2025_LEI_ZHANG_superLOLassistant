@@ -1499,7 +1499,7 @@ class ProfileTab(QWidget):
         Returns:
             None.
         """
-        riot_id = self.lineRiotID.text().strip()
+        riot_id = re.sub(r"\s+", "", self.lineRiotID.text())
         if not riot_id:
             QMessageBox.warning(self, "Riot ID", "Saisis un Riot ID: gameName#tagLine")
             return
