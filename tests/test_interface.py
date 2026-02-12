@@ -42,7 +42,6 @@ from interface import (  # noqa: E402
 
 
 class TestDfIsEmpty:
-
     def test_empty_dataframe(self):
         assert _df_is_empty(pd.DataFrame()) is True
 
@@ -56,7 +55,6 @@ class TestDfIsEmpty:
 
 
 class TestSeriesIsEmpty:
-
     def test_empty_series(self):
         assert _series_is_empty(pd.Series(dtype=float)) is True
 
