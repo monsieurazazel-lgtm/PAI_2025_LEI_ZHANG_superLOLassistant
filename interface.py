@@ -2113,14 +2113,18 @@ class MainWindow(QMainWindow):
         from PySide6.QtWidgets import QInputDialog
 
         key, ok = QInputDialog.getText(
-            self, "Configurer la touche d’envoi", "Entrez une touche (par ex. 1 ou -) pour envoyer les données de la partie en cours :"
+            self,
+            "Configurer la touche d’envoi",
+            "Entrez une touche (par ex. 1 ou -) pour envoyer les données de la partie en cours :",
         )
         if not ok or not key:
             return
 
         key = key.strip()
         if len(key) != 1:
-            QMessageBox.warning(self, "Raccourci", "Tu ne peux définir qu’un seul caractère.")
+            QMessageBox.warning(
+                self, "Raccourci", "Tu ne peux définir qu’un seul caractère."
+            )
             return
 
         self.hotkey_char = key
@@ -2136,9 +2140,10 @@ class MainWindow(QMainWindow):
 
         trashbase.start_hotkey_listener(self.hotkey_char, on_trigger)
         QMessageBox.information(
-            self, "Raccourci défini", f"Appuie sur « {self.hotkey_char} » pour envoyer le résumé du scan en jeu."
+            self,
+            "Raccourci défini",
+            f"Appuie sur « {self.hotkey_char} » pour envoyer le résumé du scan en jeu.",
         )
-
 
 
 # =============================================================================

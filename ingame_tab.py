@@ -588,16 +588,16 @@ class InGameTab(QWidget):
         e_top, _e_low, e_sum = side_stats(enemies)
 
         def nick(row: Optional[list[str]]) -> str:
-            return f"{row[0]}({row[1]})" if row else "未知"
+            return f"{row[0]}({row[1]})" if row else "Inconnu"
 
         parts = [
-            f"己方总分{a_sum:.0f} vs 敌方{e_sum:.0f}",
-            f"MVP预定：{nick(a_top)}" if a_top else "",
-            f"需要照顾：{nick(a_low)}" if a_low else "",
-            f"盯防对面：{nick(e_top)}" if e_top else "",
-            "开局稳住，我们能赢！",
+            f"Notre équipe {a_sum:.0f} vs Ennemis {e_sum:.0f}",
+            f"MVP probable : {nick(a_top)}" if a_top else "",
+            f"À protéger : {nick(a_low)}" if a_low else "",
+            f"À surveiller : {nick(e_top)}" if e_top else "",
+            "Restez calmes au début, on peut gagner mdr!",
         ]
-        return "，".join([p for p in parts if p])[:220]
+        return ", ".join([p for p in parts if p])[:220]
 
     def get_live_summary_text(self) -> str:
         """Expose the last computed summary for external hotkeys."""
