@@ -2064,7 +2064,7 @@ class MainWindow(QMainWindow):
         self.btnTheme.setFixedWidth(100)
         self.btnTheme.clicked.connect(self.toggle_theme)
 
-        self.btnHotkey = QPushButton("设定发送键")
+        self.btnHotkey = QPushButton("Envoier l'info")
         self.btnHotkey.setFixedWidth(100)
         self.btnHotkey.clicked.connect(self.configure_hotkey)
 
@@ -2113,14 +2113,14 @@ class MainWindow(QMainWindow):
         from PySide6.QtWidgets import QInputDialog
 
         key, ok = QInputDialog.getText(
-            self, "设定热键", "输入一个键（如 1 或 - ）用来发送当前局内数据："
+            self, "Configurer la touche d’envoi", "Entrez une touche (par ex. 1 ou -) pour envoyer les données de la partie en cours :"
         )
         if not ok or not key:
             return
 
         key = key.strip()
         if len(key) != 1:
-            QMessageBox.warning(self, "热键", "只能设置单个字符键。")
+            QMessageBox.warning(self, "Raccourci", "Tu ne peux définir qu’un seul caractère.")
             return
 
         self.hotkey_char = key
@@ -2136,8 +2136,9 @@ class MainWindow(QMainWindow):
 
         trashbase.start_hotkey_listener(self.hotkey_char, on_trigger)
         QMessageBox.information(
-            self, "热键已设定", f"按下 '{self.hotkey_char}' 将发送当前局内扫描摘要。"
+            self, "Raccourci défini", f"Appuie sur « {self.hotkey_char} » pour envoyer le résumé du scan en jeu."
         )
+
 
 
 # =============================================================================

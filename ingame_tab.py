@@ -98,7 +98,7 @@ def safe_call(fn: Callable[..., T], *args: Any, **kwargs: Any) -> T:
                 continue
 
             if status in (401, 403):
-                raise SystemExit("Clé API invalide/expirée (401/403).")
+                raise RuntimeError("Clé API invalide/expirée (401/403).")
 
             raise
 
