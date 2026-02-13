@@ -4,6 +4,10 @@ Projet de **Shutian LEI** et **Lixiang ZHANG**
 
 Application desktop (PySide6) d'assistance pour League of Legends : tier-lists META, profil personnel, scan de partie en cours et hotkey pour envoi de messages en jeu.
 
+Vous pouvez trouver la clé API dans sur le site suivant https://developer.riotgames.com/, en créant un compte bien sur. 
+
+Les informations concernant le projet sphinx sont dans le fichier \build\html\index.html, il suffit de l'ouvrir dans le navigateur. 
+
 ---
 
 ## Architecture du projet
