@@ -1,26 +1,22 @@
+import sys
 import ctypes
 import time
 import random
 import threading
-from pynput import keyboard
-import pyperclip
 import os
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Callable
 
-# Windows API 定义
+import pyperclip
+from pynput import keyboard
+
+# --- Définitions de l'API Windows (ctypes) ---
+
 SendInput = ctypes.windll.user32.SendInput
-
-DEBOUNCE_SEC = 0.15
-
-# 新增：热键监听支持
-_hotkey_thread = None
-_hotkey_listener = None
-_hotkey_stop = threading.Event()
-
-# 输入事件结构体
 PUL = ctypes.POINTER(ctypes.c_ulong)
 
-
 class KeyBdInput(ctypes.Structure):
+    """Structure représentant une entrée clavier pour l'API Windows."""
     _fields_ = [
         ("wVk", ctypes.c_ushort),
         ("wScan", ctypes.c_ushort),
@@ -29,16 +25,16 @@ class KeyBdInput(ctypes.Structure):
         ("dwExtraInfo", PUL),
     ]
 
-
 class HardwareInput(ctypes.Structure):
+    """Structure représentant une entrée matérielle générique."""
     _fields_ = [
         ("uMsg", ctypes.c_ulong),
         ("wParamL", ctypes.c_short),
         ("wParamH", ctypes.c_ushort),
     ]
 
-
 class MouseInput(ctypes.Structure):
+    """Structure représentant une entrée souris."""
     _fields_ = [
         ("dx", ctypes.c_long),
         ("dy", ctypes.c_long),
@@ -48,128 +44,99 @@ class MouseInput(ctypes.Structure):
         ("dwExtraInfo", PUL),
     ]
 
-
 class Input_I(ctypes.Union):
+    """Union des différents types d'entrées possibles."""
     _fields_ = [("ki", KeyBdInput), ("mi", MouseInput), ("hi", HardwareInput)]
 
-
 class Input(ctypes.Structure):
+    """Structure principale envoyée à la fonction SendInput de Windows."""
     _fields_ = [("type", ctypes.c_ulong), ("ii", Input_I)]
 
+# --- Variables Globales et Configuration ---
 
-def _run_hotkey_listener(trigger_key: str, on_trigger):
-    from pynput import keyboard
+DEBOUNCE_SEC: float = 0.15
+TAUNTS_FILE: str = "taunts.txt"
+TEXT_MAP: Dict[str, str] = {
+    "+": "男的来了女的来了... [Texte tronqué]",
+    "*": "유럽 ​​대륙을 떠도는 유령...",
+    "/": "프롤레타리아트가 계급으로...",
+}
 
-    def _on_press(key):
-        nonlocal trigger_key
-        now = time.time()
-        with lock:
-            global last_press_time
-            if now - last_press_time < DEBOUNCE_SEC:
-                return
-            last_press_time = now
+_hotkey_listener: Optional[keyboard.Listener] = None
+_hotkey_thread: Optional[threading.Thread] = None
+_hotkey_stop: threading.Event = threading.Event()
+last_press_time: float = 0.0
+lock: threading.Lock = threading.Lock()
 
-        try:
-            if hasattr(key, "char") and key.char == trigger_key:
-                msg = on_trigger() if callable(on_trigger) else ""
-                if msg:
-                    send_text_to_game(msg)
-                return
-        except Exception:
-            pass
-        if key == keyboard.Key.esc:
-            _hotkey_stop.set()
-            return False
+# --- Fonctions de Manipulation du Clavier ---
 
-    with keyboard.Listener(on_press=_on_press) as listener:
-        global _hotkey_listener
-        _hotkey_listener = listener
-        listener.join()
+def press_enter() -> None:
+    """Simule l'appui et le relâchement de la touche Entrée."""
+    ctypes.windll.user32.keybd_event(0x0D, 0, 0, 0)  # Enter enfoncé
+    ctypes.windll.user32.keybd_event(0x0D, 0, 2, 0)  # Enter relâché
 
+def send_unicode_char(char: str) -> None:
+    """Envoie un caractère Unicode unique via l'API SendInput.
 
-def start_hotkey_listener(trigger_key: str, on_trigger):
-    """启动热键监听，按下 trigger_key 时调用 on_trigger() 获取文本并发送。"""
-    global _hotkey_thread, _hotkey_stop
-    stop_hotkey_listener()
-    _hotkey_stop = threading.Event()
-    _hotkey_thread = threading.Thread(
-        target=_run_hotkey_listener, args=(trigger_key, on_trigger), daemon=True
-    )
-    _hotkey_thread.start()
-
-
-def stop_hotkey_listener():
-    """停止已有的热键监听。"""
-    global _hotkey_listener, _hotkey_thread
-    if _hotkey_listener:
-        try:
-            _hotkey_listener.stop()
-        except Exception:
-            pass
-    _hotkey_stop.set()
-    _hotkey_listener = None
-    _hotkey_thread = None
-
-
-def press_enter():
-    ctypes.windll.user32.keybd_event(0x0D, 0, 0, 0)  # Enter down
-    ctypes.windll.user32.keybd_event(0x0D, 0, 2, 0)  # Enter up
-
-
-def send_unicode_char(char):
-    """发送单个Unicode字符"""
+    Args:
+        char: Le caractère à envoyer.
+    """
+    # KEYEVENTF_UNICODE = 0x0004
     uni_input = Input(type=1, ii=Input_I())
     uni_input.ii.ki = KeyBdInput(
         0, ord(char), 0x0004, 0, ctypes.pointer(ctypes.c_ulong(0))
-    )  # KEYEVENTF_UNICODE = 0x0004
+    )
     SendInput(1, ctypes.pointer(uni_input), ctypes.sizeof(uni_input))
 
-    uni_input.ii.ki.dwFlags = 0x0006  # KEYEVENTF_UNICODE | KEYEVENTF_KEYUP
+    # KEYEVENTF_KEYUP = 0x0002 | KEYEVENTF_UNICODE = 0x0004 -> 0x0006
+    uni_input.ii.ki.dwFlags = 0x0006
     SendInput(1, ctypes.pointer(uni_input), ctypes.sizeof(uni_input))
 
+def send_text_to_game(text: str) -> None:
+    """Ouvre le chat du jeu, tape le texte et l'envoie.
 
-def send_text_to_game(text):
-    """直接在游戏中输入任意语言字符"""
+    Args:
+        text: La chaîne de caractères à saisir dans le jeu.
+    """
     time.sleep(0.3)
-    press_enter()  # 打开聊天框
+    press_enter()  # Ouvre la boîte de dialogue
     time.sleep(0.1)
 
     for ch in text:
         send_unicode_char(ch)
-        time.sleep(0.003)  # 防止太快
+        time.sleep(0.003)  # Délai minimal pour éviter la saturation du buffer
 
     time.sleep(0.1)
-    press_enter()  # 发送消息
-    print(f"[{time.strftime('%H:%M:%S')}] 已发送：{text}")
+    press_enter()  # Envoie le message
+    print(f"[{time.strftime('%H:%M:%S')}] Envoyé : {text[:30]}...")
 
+# --- Logique de Chargement et de Gestion ---
 
-# ================= 主监听逻辑 ==================
+def load_taunts(path: str = TAUNTS_FILE) -> List[str]:
+    """Charge les phrases de provocation depuis un fichier texte.
 
-TAUNTS_FILE = "taunts.txt"
-DEBOUNCE_SEC = 0.15
+    Args:
+        path: Chemin vers le fichier .txt.
 
-
-def load_taunts(path=TAUNTS_FILE):
+    Returns:
+        Une liste de phrases. Renvoie une phrase par défaut si le fichier est vide ou absent.
+    """
     if os.path.exists(path):
         with open(path, encoding="utf-8") as f:
             lines = [ln.strip() for ln in f if ln.strip()]
         if lines:
             return lines
-    return ["这是默认语句，替换 taunts.txt 以改变内容。"]
+    return ["Fichier taunts.txt manquant ou vide."]
 
+def on_press(key: keyboard.KeyCode) -> Optional[bool]:
+    """Gère les événements de pression de touche avec anti-rebond.
 
-taunts = load_taunts()
-last_press_time = 0.0
-lock = threading.Lock()
+    Args:
+        key: La touche pressée détectée par le listener.
 
-TEXT_MAP = {
-    "+": "男的来了女的来了男同来了女同来了萝莉来了御姐来了男娘来了双性人来了跨性别来了性别酷儿来了流性人来了武装直升机来了沃尔玛购物袋来了自来水管来了小孩姐来了孙笑川来了嘉然来了多首的怪物来了户晨风来了PDD来了侯国玉来了虎哥来了刀哥来了唐老鸭来了小亮来了.",
-    "*": "유럽 ​​대륙을 떠도는 유령, 바로 공산주의라는 유령입니다. 옛 유럽의 모든 세력이 이 유령을 몰아내기 위한 거룩한 투쟁에 힘을 합쳤습니다. 교황과 차르, 메테르니히와 기조, 프랑스 급진파와 독일 경찰 스파이까지 말입니다.",
-    "/": "프롤레타리아트가 계급으로, 나아가 정당으로 조직되는 과정은 노동자들 사이의 경쟁으로 인해 끊임없이 약화됩니다. 그러나 이 조직은 끊임없이 재생산되며, 매번 더욱 강하고, 더욱 견고하고, 더욱 강력해집니다. 부르주아 내부의 분열을 이용하여 노동자들의 개인적 이익을 법적으로 인정하도록 강요합니다. 영국의 10시간 노동법안이 그 예입니다.",
-}
-
-
-def on_press(key):
+    Returns:
+        False si la touche Esc est pressée pour arrêter le listener, sinon None.
+    """
     global last_press_time
     now = time.time()
 
@@ -179,31 +146,39 @@ def on_press(key):
         last_press_time = now
 
     try:
-        if hasattr(key, "char") and key.char == "-":
-            msg = random.choice(taunts)
-            pyperclip.copy(msg)
-            send_text_to_game(msg)
-            return
+        if hasattr(key, "char"):
+            msg: Optional[str] = None
+            
+            if key.char == "-":
+                msg = random.choice(taunts)
+            elif key.char in TEXT_MAP:
+                msg = TEXT_MAP[key.char]
 
-        elif hasattr(key, "char") and key.char in TEXT_MAP:
-            msg = TEXT_MAP[key.char]
-            pyperclip.copy(msg)
-            send_text_to_game(msg)
-            return
+            if msg:
+                pyperclip.copy(msg)
+                send_text_to_game(msg)
+                return
 
     except AttributeError:
         pass
 
     if key == keyboard.Key.esc:
-        print("检测到 Esc，程序退出。")
+        print("Arrêt du programme détecté (Esc).")
         return False
 
+# --- Point d'entrée ---
 
-def main():
-    print("监听启动：按 '-' 或 '+/*//' 触发发送。按 Esc 退出。")
+def main() -> None:
+    """Lance le listener de clavier principal."""
+    global taunts
+    taunts = load_taunts()
+    
+    print("=== Listener Actif ===")
+    print("Touches : '-' pour taunts aléatoires, '+', '*', '/' pour textes prédéfinis.")
+    print("Appuyez sur 'Esc' pour quitter.")
+    
     with keyboard.Listener(on_press=on_press) as listener:
         listener.join()
-
 
 if __name__ == "__main__":
     main()
