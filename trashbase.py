@@ -1,11 +1,9 @@
-import sys
 import ctypes
 import time
 import random
 import threading
 import os
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Callable
+from typing import Dict, List, Optional
 
 import pyperclip
 from pynput import keyboard
@@ -15,8 +13,10 @@ from pynput import keyboard
 SendInput = ctypes.windll.user32.SendInput
 PUL = ctypes.POINTER(ctypes.c_ulong)
 
+
 class KeyBdInput(ctypes.Structure):
     """Structure représentant une entrée clavier pour l'API Windows."""
+
     _fields_ = [
         ("wVk", ctypes.c_ushort),
         ("wScan", ctypes.c_ushort),
@@ -25,16 +25,20 @@ class KeyBdInput(ctypes.Structure):
         ("dwExtraInfo", PUL),
     ]
 
+
 class HardwareInput(ctypes.Structure):
     """Structure représentant une entrée matérielle générique."""
+
     _fields_ = [
         ("uMsg", ctypes.c_ulong),
         ("wParamL", ctypes.c_short),
         ("wParamH", ctypes.c_ushort),
     ]
 
+
 class MouseInput(ctypes.Structure):
     """Structure représentant une entrée souris."""
+
     _fields_ = [
         ("dx", ctypes.c_long),
         ("dy", ctypes.c_long),
@@ -44,13 +48,18 @@ class MouseInput(ctypes.Structure):
         ("dwExtraInfo", PUL),
     ]
 
+
 class Input_I(ctypes.Union):
     """Union des différents types d'entrées possibles."""
+
     _fields_ = [("ki", KeyBdInput), ("mi", MouseInput), ("hi", HardwareInput)]
+
 
 class Input(ctypes.Structure):
     """Structure principale envoyée à la fonction SendInput de Windows."""
+
     _fields_ = [("type", ctypes.c_ulong), ("ii", Input_I)]
+
 
 # --- Variables Globales et Configuration ---
 
@@ -70,10 +79,12 @@ lock: threading.Lock = threading.Lock()
 
 # --- Fonctions de Manipulation du Clavier ---
 
+
 def press_enter() -> None:
     """Simule l'appui et le relâchement de la touche Entrée."""
     ctypes.windll.user32.keybd_event(0x0D, 0, 0, 0)  # Enter enfoncé
     ctypes.windll.user32.keybd_event(0x0D, 0, 2, 0)  # Enter relâché
+
 
 def send_unicode_char(char: str) -> None:
     """Envoie un caractère Unicode unique via l'API SendInput.
@@ -91,6 +102,7 @@ def send_unicode_char(char: str) -> None:
     # KEYEVENTF_KEYUP = 0x0002 | KEYEVENTF_UNICODE = 0x0004 -> 0x0006
     uni_input.ii.ki.dwFlags = 0x0006
     SendInput(1, ctypes.pointer(uni_input), ctypes.sizeof(uni_input))
+
 
 def send_text_to_game(text: str) -> None:
     """Ouvre le chat du jeu, tape le texte et l'envoie.
@@ -110,7 +122,9 @@ def send_text_to_game(text: str) -> None:
     press_enter()  # Envoie le message
     print(f"[{time.strftime('%H:%M:%S')}] Envoyé : {text[:30]}...")
 
+
 # --- Logique de Chargement et de Gestion ---
+
 
 def load_taunts(path: str = TAUNTS_FILE) -> List[str]:
     """Charge les phrases de provocation depuis un fichier texte.
@@ -127,6 +141,7 @@ def load_taunts(path: str = TAUNTS_FILE) -> List[str]:
         if lines:
             return lines
     return ["Fichier taunts.txt manquant ou vide."]
+
 
 def on_press(key: keyboard.KeyCode) -> Optional[bool]:
     """Gère les événements de pression de touche avec anti-rebond.
@@ -148,7 +163,7 @@ def on_press(key: keyboard.KeyCode) -> Optional[bool]:
     try:
         if hasattr(key, "char"):
             msg: Optional[str] = None
-            
+
             if key.char == "-":
                 msg = random.choice(taunts)
             elif key.char in TEXT_MAP:
@@ -166,19 +181,22 @@ def on_press(key: keyboard.KeyCode) -> Optional[bool]:
         print("Arrêt du programme détecté (Esc).")
         return False
 
+
 # --- Point d'entrée ---
+
 
 def main() -> None:
     """Lance le listener de clavier principal."""
     global taunts
     taunts = load_taunts()
-    
+
     print("=== Listener Actif ===")
     print("Touches : '-' pour taunts aléatoires, '+', '*', '/' pour textes prédéfinis.")
     print("Appuyez sur 'Esc' pour quitter.")
-    
+
     with keyboard.Listener(on_press=on_press) as listener:
         listener.join()
+
 
 if __name__ == "__main__":
     main()

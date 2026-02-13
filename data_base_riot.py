@@ -135,9 +135,19 @@ def rows_schema() -> List[str]:
         Liste des noms de colonnes.
     """
     return [
-        "matchId", "teamId", "teamWin", "winnerTeamId", "role",
-        "championName", "kills", "deaths", "assists", "kda_ratio",
-        "summoner1Id", "summoner2Id", "puuid",
+        "matchId",
+        "teamId",
+        "teamWin",
+        "winnerTeamId",
+        "role",
+        "championName",
+        "kills",
+        "deaths",
+        "assists",
+        "kda_ratio",
+        "summoner1Id",
+        "summoner2Id",
+        "puuid",
     ]
 
 
@@ -226,7 +236,12 @@ def riotids_to_puuids(
 
 
 def league_entries_pages(
-    lol: LolWatcher, platform_lc: str, queue_str: str, tier_en: str, div: str, max_pages: int = 10
+    lol: LolWatcher,
+    platform_lc: str,
+    queue_str: str,
+    tier_en: str,
+    div: str,
+    max_pages: int = 10,
 ) -> List[dict]:
     """Récupère plusieurs pages d'entrées d'une ligue donnée.
 
@@ -278,20 +293,32 @@ def seed_from_ladder_hightiers(
     """
     ids: List[str] = []
     # Parcours successif MASTER -> GM -> CHALL
-    for method in [lol.league.masters_by_queue, lol.league.grandmaster_by_queue, lol.league.challenger_by_queue]:
+    for method in [
+        lol.league.masters_by_queue,
+        lol.league.grandmaster_by_queue,
+        lol.league.challenger_by_queue,
+    ]:
         try:
             data = safe_call(method, platform_lc, queue_str)
-            ids += [e.get("summonerId") for e in (data.get("entries") or []) if e.get("summonerId")]
-            if ids: break
+            ids += [
+                e.get("summonerId")
+                for e in (data.get("entries") or [])
+                if e.get("summonerId")
+            ]
+            if ids:
+                break
         except ApiError:
             continue
-    
+
     # Fallback DIAMOND
     if not ids:
         for div in ["I", "II", "III", "IV"]:
-            entries = league_entries_pages(lol, platform_lc, queue_str, "DIAMOND", div, max_pages=5)
+            entries = league_entries_pages(
+                lol, platform_lc, queue_str, "DIAMOND", div, max_pages=5
+            )
             ids += [e.get("summonerId") for e in entries if e.get("summonerId")]
-            if ids: break
+            if ids:
+                break
 
     return list({x for x in ids if x})
 
@@ -350,7 +377,9 @@ def collect_dataset(
 
     platform_lc = platform.lower().strip()
     region_lc = region.lower().strip()
-    QUEUE_STR = "RANKED_SOLO_5x5" if (queue_id == 420 or queue_id is None) else "RANKED_FLEX_SR"
+    QUEUE_STR = (
+        "RANKED_SOLO_5x5" if (queue_id == 420 or queue_id is None) else "RANKED_FLEX_SR"
+    )
 
     outdir.mkdir(parents=True, exist_ok=True)
     part_csv = outdir / "participants.csv"
@@ -382,30 +411,43 @@ def collect_dataset(
     batch_rows = []
     batch_match_rows = []
 
-    print(f"[RUN] cible={target_matches} matchs, queue_id={queue_id}, seeds={len(seeds_puuids)}")
+    print(
+        f"[RUN] cible={target_matches} matchs, queue_id={queue_id}, seeds={len(seeds_puuids)}"
+    )
 
     while processed < target_matches and puuid_queue:
         puuid = puuid_queue.popleft()
         kw = {"queue": queue_id, "type": "ranked"} if queue_id else {}
-        
+
         try:
-            mlist = safe_call(lol.match.matchlist_by_puuid, region_lc, puuid, count=matchlist_count, **kw)
+            mlist = safe_call(
+                lol.match.matchlist_by_puuid,
+                region_lc,
+                puuid,
+                count=matchlist_count,
+                **kw,
+            )
         except ApiError:
             continue
-        
-        if not mlist: continue
+
+        if not mlist:
+            continue
 
         for mid in mlist:
-            if processed >= target_matches: break
-            if mid in seen_matches: continue
-            
+            if processed >= target_matches:
+                break
+            if mid in seen_matches:
+                continue
+
             try:
                 match = safe_call(lol.match.by_id, region_lc, mid)
                 info = match.get("info", {})
-                if not info or not info.get("participants"): continue
-                
+                if not info or not info.get("participants"):
+                    continue
+
                 p_rows = iter_participant_rows(match)
-                if not p_rows: continue
+                if not p_rows:
+                    continue
 
                 winner_team = extract_winner_team_id(info)
                 batch_rows.extend(p_rows)
@@ -441,7 +483,9 @@ def main() -> None:
     """Parse les arguments CLI et lance la collecte."""
     ap = argparse.ArgumentParser(description="Collecte N matchs (seed via Riot IDs)")
     ap.add_argument("--api-key", type=str, help="Clé Riot")
-    ap.add_argument("--region", type=str, default="europe", help="europe/americas/asia/sea")
+    ap.add_argument(
+        "--region", type=str, default="europe", help="europe/americas/asia/sea"
+    )
     ap.add_argument("--platform", type=str, default="euw1", help="euw1/na1/kr/...")
     ap.add_argument("--target", type=int, default=1000, help="Nombre de matchs")
     ap.add_argument("--queue", type=int, default=420, help="420=SoloQ, 440=Flex")
@@ -449,11 +493,14 @@ def main() -> None:
     ap.add_argument("--outdir", type=str, default="data_db", help="Dossier de sortie")
     ap.add_argument("--max-seed-players", type=int, default=300, help="Limite seeds")
     ap.add_argument("--seed-riotids", type=str, help="IDs séparés par des virgules")
-    ap.add_argument("--seed-riotids-file", type=str, help="Fichier texte, un ID par ligne")
+    ap.add_argument(
+        "--seed-riotids-file", type=str, help="Fichier texte, un ID par ligne"
+    )
 
     args = ap.parse_args()
 
-    if args.api_key: os.environ["RIOT_API_KEY"] = args.api_key
+    if args.api_key:
+        os.environ["RIOT_API_KEY"] = args.api_key
     api_key = os.getenv("RIOT_API_KEY")
     if not api_key:
         raise SystemExit("RIOT_API_KEY absente.")

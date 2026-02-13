@@ -12,7 +12,7 @@ import json
 import time
 import random
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import pandas as pd
 
@@ -32,6 +32,7 @@ DATA_DIR.mkdir(exist_ok=True)
 # ------------------------------
 # Utils (Outils)
 # ------------------------------
+
 
 def save_json(path: Path, obj: Any) -> None:
     """Sauvegarde un objet Python dans un fichier au format JSON.
@@ -67,15 +68,38 @@ def flatten_participants(info: Dict[str, Any]) -> pd.DataFrame:
     """
     # Colonnes de base à extraire
     cols_basic = [
-        "participantId", "teamId", "win", "summonerName", "puuid",
-        "championName", "champLevel", "teamPosition", "role", "lane",
-        "kills", "deaths", "assists", "totalMinionsKilled",
-        "neutralMinionsKilled", "goldEarned", "goldSpent", "visionScore",
-        "timeCCingOthers", "totalDamageDealt", "totalDamageDealtToChampions",
-        "magicDamageDealt", "physicalDamageDealt", "trueDamageDealt",
-        "damageDealtToObjectives", "damageSelfMitigated", "totalHeal",
-        "totalHealsOnTeammates", "totalDamageTaken", "totalTimeSpentDead",
-        "wardsPlaced", "wardsKilled",
+        "participantId",
+        "teamId",
+        "win",
+        "summonerName",
+        "puuid",
+        "championName",
+        "champLevel",
+        "teamPosition",
+        "role",
+        "lane",
+        "kills",
+        "deaths",
+        "assists",
+        "totalMinionsKilled",
+        "neutralMinionsKilled",
+        "goldEarned",
+        "goldSpent",
+        "visionScore",
+        "timeCCingOthers",
+        "totalDamageDealt",
+        "totalDamageDealtToChampions",
+        "magicDamageDealt",
+        "physicalDamageDealt",
+        "trueDamageDealt",
+        "damageDealtToObjectives",
+        "damageSelfMitigated",
+        "totalHeal",
+        "totalHealsOnTeammates",
+        "totalDamageTaken",
+        "totalTimeSpentDead",
+        "wardsPlaced",
+        "wardsKilled",
     ]
     parts = info.get("participants", [])
     rows = []
@@ -87,7 +111,7 @@ def flatten_participants(info: Dict[str, Any]) -> pd.DataFrame:
         # Sorts d'invocateur
         row["summoner1Id"] = p.get("summoner1Id")
         row["summoner2Id"] = p.get("summoner2Id")
-        
+
         # Gestion des runes (perks)
         perks = p.get("perks", {})
         row["perks_raw"] = json.dumps(perks, ensure_ascii=False)
@@ -106,15 +130,19 @@ def flatten_participants(info: Dict[str, Any]) -> pd.DataFrame:
         except Exception:
             pass
         rows.append(row)
-    
+
     df = pd.DataFrame(rows)
     # Réorganisation des colonnes pour la lisibilité
     item_cols = [f"item{i}" for i in range(7)]
     rune_cols = [c for c in df.columns if c.startswith("rune_")] + [
-        "runes_primary_style", "runes_secondary_style", "perks_raw"
+        "runes_primary_style",
+        "runes_secondary_style",
+        "perks_raw",
     ]
     spell_cols = ["summoner1Id", "summoner2Id"]
-    ordered = [c for c in cols_basic if c in df.columns] + item_cols + spell_cols + rune_cols
+    ordered = (
+        [c for c in cols_basic if c in df.columns] + item_cols + spell_cols + rune_cols
+    )
     return df.reindex(columns=ordered)
 
 
@@ -132,7 +160,11 @@ def flatten_teams(info: Dict[str, Any]) -> pd.DataFrame:
         rec = {
             "teamId": t.get("teamId"),
             "win": t.get("win"),
-            "ban_0": None, "ban_1": None, "ban_2": None, "ban_3": None, "ban_4": None,
+            "ban_0": None,
+            "ban_1": None,
+            "ban_2": None,
+            "ban_3": None,
+            "ban_4": None,
         }
         # Enregistrement des 5 champions bannis
         for i, b in enumerate(t.get("bans", [])[:5]):
@@ -160,12 +192,14 @@ def flatten_objectives_long(info: Dict[str, Any]) -> pd.DataFrame:
     for t in info.get("teams", []):
         tid = t.get("teamId")
         for key, o in (t.get("objectives") or {}).items():
-            records.append({
-                "teamId": tid,
-                "objective": key,
-                "first": o.get("first"),
-                "kills": o.get("kills"),
-            })
+            records.append(
+                {
+                    "teamId": tid,
+                    "objective": key,
+                    "first": o.get("first"),
+                    "kills": o.get("kills"),
+                }
+            )
     return pd.DataFrame(records)
 
 
@@ -188,22 +222,42 @@ def flatten_timeline_events(timeline: Dict[str, Any]) -> pd.DataFrame:
             row = {"timestamp": ts, "type": ev.get("type")}
             # Champs d'intérêt à extraire dynamiquement
             fields = [
-                "participantId", "killerId", "victimId", "assistingParticipantIds",
-                "itemId", "skillSlot", "level", "levelUpType", "wardType",
-                "creatorId", "teamId", "laneType", "buildingType", "towerType",
-                "bounty", "multiKillLength", "monsterType", "monsterSubType",
-                "position", "realTimestamp", "shutdownBounty", "killStreakLength"
+                "participantId",
+                "killerId",
+                "victimId",
+                "assistingParticipantIds",
+                "itemId",
+                "skillSlot",
+                "level",
+                "levelUpType",
+                "wardType",
+                "creatorId",
+                "teamId",
+                "laneType",
+                "buildingType",
+                "towerType",
+                "bounty",
+                "multiKillLength",
+                "monsterType",
+                "monsterSubType",
+                "position",
+                "realTimestamp",
+                "shutdownBounty",
+                "killStreakLength",
             ]
             for k in fields:
-                if k in ev: row[k] = ev.get(k)
+                if k in ev:
+                    row[k] = ev.get(k)
             recs.append(row)
-    
+
     df = pd.DataFrame(recs)
     # Conversion des dictionnaires/listes en chaînes JSON pour le stockage CSV
     for c in df.columns:
         if df[c].map(lambda x: isinstance(x, (dict, list))).any():
             df[c] = df[c].map(
-                lambda x: json.dumps(x, ensure_ascii=False) if isinstance(x, (dict, list)) else x
+                lambda x: json.dumps(x, ensure_ascii=False)
+                if isinstance(x, (dict, list))
+                else x
             )
     return df
 
@@ -212,8 +266,14 @@ def flatten_timeline_events(timeline: Dict[str, Any]) -> pd.DataFrame:
 # Fetchers (Récupérateurs)
 # ------------------------------
 
+
 def get_puuid(
-    rw: RiotWatcher, lol: LolWatcher, region: str, platform: str, game_name: str, tag_line: str
+    rw: RiotWatcher,
+    lol: LolWatcher,
+    region: str,
+    platform: str,
+    game_name: str,
+    tag_line: str,
 ) -> str:
     """Récupère l'identifiant unique (PUUID) d'un joueur via son Riot ID.
 
@@ -273,10 +333,11 @@ def pick_match_id(
 # Main logic (Logique principale)
 # ------------------------------
 
+
 def main() -> None:
     """Flux principal du script : analyse les arguments et lance l'extraction."""
     ap = argparse.ArgumentParser(description="Dump d'un match LoL via l'API Riot")
-    
+
     # Configuration des arguments CLI
     ap.add_argument("--api-key", type=str, help="Clé API Riot")
     ap.add_argument("--region", type=str, default="europe", help="europe/americas/asia")
@@ -286,7 +347,7 @@ def main() -> None:
     ap.add_argument("--queue", type=int, default=420, help="420=SoloQ, 440=Flex")
     ap.add_argument("--count", type=int, default=50, help="Nombre de matchs à scanner")
     ap.add_argument("--match-id", type=str, help="ID spécifique du match")
-    
+
     args = ap.parse_args()
 
     # Gestion de la clé API (priorité à l'argument CLI)
@@ -336,8 +397,8 @@ def main() -> None:
         df_ev = flatten_timeline_events(timeline)
         if not df_ev.empty:
             df_to_csv(DATA_DIR / f"timeline_events_{match_id}.csv", df_ev)
-            print(f"[OK] timeline extraite.")
-        time.sleep(1.0) # Respect du rate limit
+            print("[OK] timeline extraite.")
+        time.sleep(1.0)  # Respect du rate limit
     except ApiError as e:
         print(f"[WARN] Timeline indisponible: {e}")
 
@@ -345,8 +406,11 @@ def main() -> None:
     print("\n=== RÉSUMÉ ===")
     print(f"Match ID: {match_id}")
     print(f"Version: {info.get('gameVersion')}")
-    print(f"Vainqueur: {[t.get('teamId') for t in info.get('teams', []) if t.get('win')]}")
+    print(
+        f"Vainqueur: {[t.get('teamId') for t in info.get('teams', []) if t.get('win')]}"
+    )
     print("======== FIN ========")
+
 
 if __name__ == "__main__":
     main()

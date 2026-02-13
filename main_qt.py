@@ -38,11 +38,11 @@ class SinusWidget(QWidget):
         self.canvas: FigureCanvas = FigureCanvas(self.fig)
         self.ax = self.fig.add_subplot()
         self.x_array: np.ndarray = np.linspace(0, 10, 400)
-        
+
         # Initialisation de la ligne du graphique
         (self.line,) = self.ax.plot(
-            self.x_array, 
-            self.amplitude * np.sin(self.frequency * self.x_array + self.phase)
+            self.x_array,
+            self.amplitude * np.sin(self.frequency * self.x_array + self.phase),
         )
         self.ax.set_title("Sinus animé")
         self.ax.set_ylim(-5.5, 5.5)  # Fixe les limites pour éviter les sauts visuels
@@ -59,9 +59,7 @@ class SinusWidget(QWidget):
         layout.addLayout(
             self.make_control("Amplitude", 0.1, 5.0, self.amplitude, "amplitude")
         )
-        layout.addLayout(
-            self.make_control("Phase", 0.0, 6.28, self.phase, "phase")
-        )
+        layout.addLayout(self.make_control("Phase", 0.0, 6.28, self.phase, "phase"))
 
         # Case à cocher pour l'animation
         self.animate_checkbox: QCheckBox = QCheckBox("Animer la phase")
@@ -72,8 +70,9 @@ class SinusWidget(QWidget):
         self.timer: QTimer = QTimer()
         self.timer.timeout.connect(self.animate_phase)
 
-    def make_control(self, label_text: str, min_val: float, max_val: float, 
-                     default: float, attr: str) -> QHBoxLayout:
+    def make_control(
+        self, label_text: str, min_val: float, max_val: float, default: float, attr: str
+    ) -> QHBoxLayout:
         """Crée un ensemble de contrôle composé d'un label, un slider et un champ texte.
 
         Args:
@@ -177,12 +176,12 @@ class SinusWidget(QWidget):
         min_val = getattr(self, "phase_min")
         max_val = getattr(self, "phase_max")
         slider_val = int(100 * (self.phase - min_val) / (max_val - min_val))
-        
+
         # Bloque les signaux temporairement pour éviter une boucle de rétroaction
         slider.blockSignals(True)
         slider.setValue(slider_val)
         slider.blockSignals(False)
-        
+
         self.update_plot()
 
     def toggle_animation(self, state: int) -> None:
@@ -195,6 +194,7 @@ class SinusWidget(QWidget):
             self.timer.start(20)  # Mise à jour toutes les 20 ms (~50 FPS)
         else:
             self.timer.stop()
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

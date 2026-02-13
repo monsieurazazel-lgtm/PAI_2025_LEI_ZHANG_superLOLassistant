@@ -14,7 +14,7 @@ import os
 import random
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List
 import pandas as pd
 
 # ===============================
@@ -35,10 +35,31 @@ ROLE_MAP: Dict[str, str] = {
 
 # Liste de champions pour le mode démo
 DEMO_CHAMPS: List[str] = [
-    "Ahri", "Zed", "Yone", "Orianna", "Annie", "Garen", "Darius", "Jax",
-    "Camille", "Riven", "LeeSin", "Vi", "Sejuani", "Kayn", "Graves",
-    "Jinx", "Caitlyn", "Ashe", "Xayah", "Ezreal", "Thresh", "Lulu",
-    "Leona", "Nautilus", "Morgana",
+    "Ahri",
+    "Zed",
+    "Yone",
+    "Orianna",
+    "Annie",
+    "Garen",
+    "Darius",
+    "Jax",
+    "Camille",
+    "Riven",
+    "LeeSin",
+    "Vi",
+    "Sejuani",
+    "Kayn",
+    "Graves",
+    "Jinx",
+    "Caitlyn",
+    "Ashe",
+    "Xayah",
+    "Ezreal",
+    "Thresh",
+    "Lulu",
+    "Leona",
+    "Nautilus",
+    "Morgana",
 ]
 DEMO_ROLES: List[str] = ["top", "jungle", "mid", "bot", "sup"]
 
@@ -75,14 +96,24 @@ def demo_generate_matches(n_matches: int = 200) -> pd.DataFrame:
 
         # Ajout des données par rôle et par équipe
         for r in DEMO_ROLES:
-            rows.append({
-                "matchId": match_id, "teamId": 100, "win": ally_win,
-                "role": r, "champ": ally[r],
-            })
-            rows.append({
-                "matchId": match_id, "teamId": 200, "win": (not ally_win),
-                "role": r, "champ": enemy[r],
-            })
+            rows.append(
+                {
+                    "matchId": match_id,
+                    "teamId": 100,
+                    "win": ally_win,
+                    "role": r,
+                    "champ": ally[r],
+                }
+            )
+            rows.append(
+                {
+                    "matchId": match_id,
+                    "teamId": 200,
+                    "win": (not ally_win),
+                    "role": r,
+                    "champ": enemy[r],
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -98,12 +129,14 @@ def save_raw_from_df(df: pd.DataFrame) -> None:
         for mid, sub in df.groupby("matchId"):
             parts = []
             for _, row in sub.iterrows():
-                parts.append({
-                    "teamId": int(row["teamId"]),
-                    "win": bool(row["win"]),
-                    "teamPosition": inv.get(row["role"], "MIDDLE"),
-                    "championName": row["champ"],
-                })
+                parts.append(
+                    {
+                        "teamId": int(row["teamId"]),
+                        "win": bool(row["win"]),
+                        "teamPosition": inv.get(row["role"], "MIDDLE"),
+                        "championName": row["champ"],
+                    }
+                )
             m = {
                 "metadata": {"matchId": mid},
                 "info": {"participants": parts, "gameVersion": "DEMO-1.0"},
@@ -115,8 +148,14 @@ def save_raw_from_df(df: pd.DataFrame) -> None:
 #          MODE API RIOT
 # ===============================
 def riot_collect(
-    api_key: str, platform: str, region: str, game_name: str, tag_line: str,
-    queue: int = 440, count: int = 200, pause_sec: float = 1.2,
+    api_key: str,
+    platform: str,
+    region: str,
+    game_name: str,
+    tag_line: str,
+    queue: int = 440,
+    count: int = 200,
+    pause_sec: float = 1.2,
 ) -> None:
     """Collecte des matchs réels via l'API Riot Games.
 
@@ -136,7 +175,9 @@ def riot_collect(
     try:
         from riotwatcher import RiotWatcher, LolWatcher, ApiError
     except ImportError as e:
-        raise SystemExit("riotwatcher n'est pas installé. Fais: pip install riotwatcher\n" + str(e))
+        raise SystemExit(
+            "riotwatcher n'est pas installé. Fais: pip install riotwatcher\n" + str(e)
+        )
 
     rw = RiotWatcher(api_key)
     lol = LolWatcher(api_key)
@@ -147,14 +188,17 @@ def riot_collect(
     try:
         acct = rw.account.by_riot_id(region, game_name, tag_line)
         puuid = acct.get("puuid")
-        if not puuid: raise ValueError("PUUID absent.")
+        if not puuid:
+            raise ValueError("PUUID absent.")
     except Exception as e:
         print(f"[RIOT] Erreur account-v1, tentative fallback summoner-v4... ({e})")
         summ = lol.summoner.by_name(platform, game_name)
         puuid = summ.get("puuid")
 
     # 2) Liste des matchs
-    match_ids = lol.match.matchlist_by_puuid(region, puuid, type="ranked", queue=queue, count=count)
+    match_ids = lol.match.matchlist_by_puuid(
+        region, puuid, type="ranked", queue=queue, count=count
+    )
     print(f"[RIOT] {len(match_ids)} matchs trouvés.")
 
     # Dé-duplication
@@ -165,14 +209,17 @@ def riot_collect(
                 try:
                     m = json.loads(line)
                     mid = m.get("metadata", {}).get("matchId")
-                    if mid: seen.add(mid)
-                except: pass
+                    if mid:
+                        seen.add(mid)
+                except Exception:
+                    pass
 
     # 3) Téléchargement
     fetched = 0
     with RAW_PATH.open("a", encoding="utf-8") as f:
         for i, mid in enumerate(match_ids, 1):
-            if mid in seen: continue
+            if mid in seen:
+                continue
             try:
                 mat = lol.match.by_id(region, mid)
                 f.write(json.dumps(mat) + "\n")
@@ -208,15 +255,19 @@ def flatten_matches(jsonl_path: Path) -> pd.DataFrame:
                 info = m.get("info", {})
                 for p in info.get("participants", []):
                     role = ROLE_MAP.get((p.get("teamPosition") or "").upper())
-                    if not role: continue
-                    rows.append({
-                        "matchId": m.get("metadata", {}).get("matchId"),
-                        "teamId": p.get("teamId"),
-                        "win": bool(p.get("win")),
-                        "role": role,
-                        "champ": p.get("championName"),
-                    })
-            except: continue
+                    if not role:
+                        continue
+                    rows.append(
+                        {
+                            "matchId": m.get("metadata", {}).get("matchId"),
+                            "teamId": p.get("teamId"),
+                            "win": bool(p.get("win")),
+                            "role": role,
+                            "champ": p.get("championName"),
+                        }
+                    )
+            except Exception :
+                continue
 
     df = pd.DataFrame(rows)
     # On ne garde que les matchs complets (10 participants)
@@ -236,7 +287,9 @@ def compute_lane_matchups(df: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame: Statistiques de matchups (victoires, jeux, winrate).
     """
     if df.empty:
-        return pd.DataFrame(columns=["role", "champ_ally", "champ_enemy", "games", "wins", "winrate"])
+        return pd.DataFrame(
+            columns=["role", "champ_ally", "champ_enemy", "games", "wins", "winrate"]
+        )
 
     # Fusion des données alliées (100) et ennemies (200) pour créer les duels
     left = df[df.teamId == 100].groupby(["matchId", "role"]).first().reset_index()
@@ -244,13 +297,19 @@ def compute_lane_matchups(df: pd.DataFrame) -> pd.DataFrame:
     duel = left.merge(right, on=["matchId", "role"], suffixes=("_ally", "_enemy"))
 
     duel["ally_win"] = duel["win_ally"].astype(int)
-    grp = duel.groupby(["role", "champ_ally", "champ_enemy"]).agg(
-        games=("ally_win", "size"),
-        wins=("ally_win", "sum"),
-    ).reset_index()
+    grp = (
+        duel.groupby(["role", "champ_ally", "champ_enemy"])
+        .agg(
+            games=("ally_win", "size"),
+            wins=("ally_win", "sum"),
+        )
+        .reset_index()
+    )
 
     grp["winrate"] = grp["wins"] / grp["games"].replace(0, 1)
-    return grp.sort_values(["role", "champ_ally", "games"], ascending=[True, True, False])
+    return grp.sort_values(
+        ["role", "champ_ally", "games"], ascending=[True, True, False]
+    )
 
 
 def save_matchups_csv(df: pd.DataFrame) -> None:
@@ -264,7 +323,9 @@ def save_matchups_csv(df: pd.DataFrame) -> None:
     print(f"[BUILD] matchups.csv écrit dans {MATCHUPS_CSV}")
 
 
-def recommend(role: str, enemy: str, topk: int = 5, min_games: int = 20) -> pd.DataFrame:
+def recommend(
+    role: str, enemy: str, topk: int = 5, min_games: int = 20
+) -> pd.DataFrame:
     """Recommande les meilleurs champions à choisir contre un ennemi donné.
 
     Args:
@@ -278,9 +339,11 @@ def recommend(role: str, enemy: str, topk: int = 5, min_games: int = 20) -> pd.D
     """
     if not MATCHUPS_CSV.exists():
         raise SystemExit("matchups.csv introuvable. Lancez d'abord --build.")
-    
+
     m = pd.read_csv(MATCHUPS_CSV)
-    sub = m[(m["role"] == role) & (m["champ_enemy"] == enemy) & (m["games"] >= min_games)]
+    sub = m[
+        (m["role"] == role) & (m["champ_enemy"] == enemy) & (m["games"] >= min_games)
+    ]
     return sub.sort_values("winrate", ascending=False).head(topk)
 
 
@@ -310,7 +373,8 @@ def main() -> None:
     """Point d'entrée principal du programme."""
     args = build_argparser().parse_args()
 
-    if args.api_key: os.environ["RIOT_API_KEY"] = args.api_key
+    if args.api_key:
+        os.environ["RIOT_API_KEY"] = args.api_key
     api_key = os.getenv("RIOT_API_KEY")
 
     # Mode DÉMO
@@ -324,7 +388,8 @@ def main() -> None:
 
     # Mode RIOT
     if args.riot:
-        if not api_key: raise SystemExit("Clé API manquante.")
+        if not api_key:
+            raise SystemExit("Clé API manquante.")
         riot_collect(api_key, args.platform, args.region, args.name, args.tag)
         if args.build:
             df = flatten_matches(RAW_PATH)
@@ -334,8 +399,10 @@ def main() -> None:
     # Mode RECOMMANDATION
     if args.recommend:
         rec = recommend(args.role, args.enemy)
-        if rec.empty: print("Pas assez de données.")
-        else: print(rec.to_string(index=False))
+        if rec.empty:
+            print("Pas assez de données.")
+        else:
+            print(rec.to_string(index=False))
 
 
 if __name__ == "__main__":
