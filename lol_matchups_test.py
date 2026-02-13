@@ -266,7 +266,7 @@ def flatten_matches(jsonl_path: Path) -> pd.DataFrame:
                             "champ": p.get("championName"),
                         }
                     )
-            except Exception :
+            except Exception:
                 continue
 
     df = pd.DataFrame(rows)
