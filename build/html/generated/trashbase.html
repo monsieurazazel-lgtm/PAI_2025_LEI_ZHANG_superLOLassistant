@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+
+<html lang="fr" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>trashbase &#8212; Documentation SuperLOLassistant </title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
+    <script src="../_static/documentation_options.js?v=d1a510d7"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/translations.js?v=e6b791cb"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Recherche" href="../search.html" />
+    <link rel="prev" title="ingame_tab" href="ingame_tab.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-trashbase">
+<span id="trashbase"></span><h1>trashbase<a class="headerlink" href="#module-trashbase" title="Lien vers cette rubrique">¶</a></h1>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_taunts</span></code>([path])</p></td>
+<td><p>Charge les phrases de provocation depuis un fichier texte.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code>()</p></td>
+<td><p>Lance le listener de clavier principal.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">on_press</span></code>(key)</p></td>
+<td><p>Gère les événements de pression de touche avec anti-rebond.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">press_enter</span></code>()</p></td>
+<td><p>Simule l'appui et le relâchement de la touche Entrée.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">send_text_to_game</span></code>(text)</p></td>
+<td><p>Ouvre le chat du jeu, tape le texte et l'envoie.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">send_unicode_char</span></code>(char)</p></td>
+<td><p>Envoie un caractère Unicode unique via l'API SendInput.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">HardwareInput</span></code></p></td>
+<td><p>Structure représentant une entrée matérielle générique.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Input</span></code></p></td>
+<td><p>Structure principale envoyée à la fonction SendInput de Windows.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Input_I</span></code></p></td>
+<td><p>Union des différents types d'entrées possibles.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">KeyBdInput</span></code></p></td>
+<td><p>Structure représentant une entrée clavier pour l'API Windows.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">MouseInput</span></code></p></td>
+<td><p>Structure représentant une entrée souris.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">SuperLOLassistant</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="riot_dump_one_match.html">riot_dump_one_match</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lol_matchups_test.html">lol_matchups_test</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interface.html">interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_qt.html">main_qt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_base_riot.html">data_base_riot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ingame_tab.html">ingame_tab</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">trashbase</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="ingame_tab.html" title="Chapitre précédent">ingame_tab</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, ShutianLEI/LixiangZHANG.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="../_sources/generated/trashbase.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

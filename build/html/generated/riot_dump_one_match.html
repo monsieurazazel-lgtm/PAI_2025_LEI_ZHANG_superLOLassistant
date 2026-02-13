@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+
+<html lang="fr" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>riot_dump_one_match &#8212; Documentation SuperLOLassistant </title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
+    <script src="../_static/documentation_options.js?v=d1a510d7"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/translations.js?v=e6b791cb"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Recherche" href="../search.html" />
+    <link rel="next" title="lol_matchups_test" href="lol_matchups_test.html" />
+    <link rel="prev" title="Bienvenue dans la documentation de SuperLOLassistant !" href="../index.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-riot_dump_one_match">
+<span id="riot-dump-one-match"></span><h1>riot_dump_one_match<a class="headerlink" href="#module-riot_dump_one_match" title="Lien vers cette rubrique">¶</a></h1>
+<p>riot_dump_one_match.py
+Script pour extraire et formater les données d’un match League of Legends via l’API Riot.</p>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">df_to_csv</span></code>(path, df)</p></td>
+<td><p>Enregistre un DataFrame Pandas au format CSV sans index.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">flatten_objectives_long</span></code>(info)</p></td>
+<td><p>Version 'longue' des objectifs pour faciliter l'analyse par type.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">flatten_participants</span></code>(info)</p></td>
+<td><p>Transforme les données imbriquées des participants en un tableau plat.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">flatten_teams</span></code>(info)</p></td>
+<td><p>Extrait les statistiques globales des équipes.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">flatten_timeline_events</span></code>(timeline)</p></td>
+<td><p>Extrait tous les événements chronologiques de la partie.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_puuid</span></code>(rw, lol, region, platform, ...)</p></td>
+<td><p>Récupère l'identifiant unique (PUUID) d'un joueur via son Riot ID.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code>()</p></td>
+<td><p>Flux principal du script : analyse les arguments et lance l'extraction.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pick_match_id</span></code>(lol, region, puuid[, queue, count])</p></td>
+<td><p>Récupère la liste des matchs récents et en choisit un au hasard.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_json</span></code>(path, obj)</p></td>
+<td><p>Sauvegarde un objet Python dans un fichier au format JSON.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">SuperLOLassistant</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">riot_dump_one_match</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lol_matchups_test.html">lol_matchups_test</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interface.html">interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_qt.html">main_qt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_base_riot.html">data_base_riot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ingame_tab.html">ingame_tab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="trashbase.html">trashbase</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="../index.html" title="Chapitre précédent">Bienvenue dans la documentation de SuperLOLassistant !</a></li>
+      <li>Next: <a href="lol_matchups_test.html" title="Chapitre suivant">lol_matchups_test</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, ShutianLEI/LixiangZHANG.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="../_sources/generated/riot_dump_one_match.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

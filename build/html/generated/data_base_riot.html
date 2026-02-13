@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+
+<html lang="fr" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>data_base_riot &#8212; Documentation SuperLOLassistant </title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
+    <script src="../_static/documentation_options.js?v=d1a510d7"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/translations.js?v=e6b791cb"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Recherche" href="../search.html" />
+    <link rel="next" title="ingame_tab" href="ingame_tab.html" />
+    <link rel="prev" title="main_qt" href="main_qt.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-data_base_riot">
+<span id="data-base-riot"></span><h1>data_base_riot<a class="headerlink" href="#module-data_base_riot" title="Lien vers cette rubrique">¶</a></h1>
+<p>Collecte N matchs LoL en CSV, en seedant avec des Riot IDs (gameName#tagLine).</p>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">collect_dataset</span></code>(api_key, region, platform, ...)</p></td>
+<td><p>Exécute la boucle principale de collecte de données par propagation (snowball).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">extract_winner_team_id</span></code>(info)</p></td>
+<td><p>Extrait l'ID de l'équipe gagnante depuis les informations du match.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">iter_participant_rows</span></code>(match)</p></td>
+<td><p>Génère une liste de dictionnaires représentant chaque participant du match.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">league_entries_pages</span></code>(lol, platform_lc, ...)</p></td>
+<td><p>Récupère plusieurs pages d'entrées d'une ligue donnée.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code>()</p></td>
+<td><p>Parse les arguments CLI et lance la collecte.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize_riot_id</span></code>(s)</p></td>
+<td><p>Normalise une chaîne Riot ID au format gameName#tagLine.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">riotids_to_puuids</span></code>(rw, region_routing, riotids)</p></td>
+<td><p>Convertit une liste de Riot IDs en PUUIDs via l'API Account-v1.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">rows_schema</span></code>()</p></td>
+<td><p>Définit l'ordre et le nom des colonnes pour le fichier participants.csv.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">safe_call</span></code>(fn, *args, **kwargs)</p></td>
+<td><p>Exécute un appel API de manière sécurisée avec gestion des erreurs courantes.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_append_csv</span></code>(path, rows, header)</p></td>
+<td><p>Sauvegarde ou ajoute des lignes au fichier CSV des participants.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_matches_csv</span></code>(path, match_rows, header)</p></td>
+<td><p>Sauvegarde ou ajoute des lignes au fichier CSV récapitulatif des matchs.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">seed_from_ladder_hightiers</span></code>(lol, platform_lc, ...)</p></td>
+<td><p>Récupère des summonerIds depuis le haut du ladder pour amorcer la collecte.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">sleep_brief</span></code>()</p></td>
+<td><p>Effectue une courte pause pour respecter le rate limit de l'API.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">summoner_ids_to_puuids</span></code>(lol, platform_lc, ...)</p></td>
+<td><p>Convertit une liste de summonerIds en PUUIDs.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">SuperLOLassistant</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="riot_dump_one_match.html">riot_dump_one_match</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lol_matchups_test.html">lol_matchups_test</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interface.html">interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_qt.html">main_qt</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">data_base_riot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ingame_tab.html">ingame_tab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="trashbase.html">trashbase</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="main_qt.html" title="Chapitre précédent">main_qt</a></li>
+      <li>Next: <a href="ingame_tab.html" title="Chapitre suivant">ingame_tab</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, ShutianLEI/LixiangZHANG.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="../_sources/generated/data_base_riot.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
